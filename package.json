@@ -1,0 +1,20 @@
+{
+  "name": "wa-bot-absensi",
+  "version": "1.0.0",
+  "description": "WhatsApp bot absensi guru dengan Google Sheets (single-file index.js)",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "googleapis": "^137.0.0",
+    "moment-timezone": "^0.5.45",
+    "puppeteer": "^21.11.0",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.34.7"
+  },
+  "author": "Pengawas GPT-5",
+  "license": "MIT"
+}

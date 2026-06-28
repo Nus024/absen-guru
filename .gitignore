@@ -1,0 +1,16 @@
+node_modules/
+.env
+.env.*
+service.json
+.wwebjs_auth/
+.wwebjs_cache/
+session_data/
+scratch/
+npm-debug.log
+yarn-error.log
+worker/node_modules/
+web/node_modules/
+web/dist/
+worker/.wrangler/
+*.log
+*.tmp
