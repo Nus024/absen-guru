@@ -1898,13 +1898,10 @@ tbody tr {
 
 /* ─── Absensi Grid ─── */
 .absensi-grid {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--sp-20);
-  align-items: start;
-  max-width: 1200px;
   width: 100%;
-  margin: 0 auto;
 }
 
 /* ─── Toolbars ─── */
@@ -2038,7 +2035,7 @@ tbody tr {
   .desktop-only { display: none !important; }
   .mobile-only  { display: flex !important; }
 
-  .absensi-grid { grid-template-columns: 1fr !important; }
+
 
   .toolbar { flex-direction: column; align-items: stretch; }
   .toolbar-group { width: 100%; }
@@ -2070,7 +2067,7 @@ tbody tr {
 @media (min-width: 1280px) {
   :root { --sidebar-w: 280px; }
   .sidebar { width: var(--sidebar-w); }
-  .absensi-grid { grid-template-columns: 1fr; }
+
 }
 
 /* ─── Sidebar Toggle Button (desktop-only ghost button) ─── */

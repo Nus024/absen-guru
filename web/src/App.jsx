@@ -1504,10 +1504,7 @@ export default function App() {
                   </div>
                   <div className="absensi-grid">
                     
-                    {/* Left Grid: Attendance Actions */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
-                      
-                      {/* Configuration Controls & Session KBM */}
+                    {/* Configuration Controls & Session KBM */}
                       <IOSCard className="session-config-card">
                         <div className="session-config-wrapper">
                           {/* Tanggal */}
@@ -1757,13 +1754,6 @@ export default function App() {
                           <IOSSection title="Ketuk Guru di Atas untuk Melihat Detail & Riwayat Absensi" />
                         )}
                       </div>
-
-                    </div>
-
-                    {/* Right Grid: Stats Ringkasan */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
-                      
-                    </div>
 
                   </div>
                 </div>
