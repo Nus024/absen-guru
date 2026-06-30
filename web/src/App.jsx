@@ -36,7 +36,8 @@ import {
   KeyOutlined as KeyOutlinedIcon,
   HistoryOutlined as HistoryOutlinedIcon,
   ManageAccountsOutlined as ManageAccountsOutlinedIcon,
-  SecurityOutlined as SecurityOutlinedIcon
+  SecurityOutlined as SecurityOutlinedIcon,
+  PeopleOutlined as PeopleOutlinedIcon
 } from "@mui/icons-material";
 
 const capitalize = (s) => {
@@ -459,11 +460,11 @@ function ToastContainer({ toasts, onRemove }) {
     <div className="toast-container">
       {toasts.map(t => (
         <div key={t.id} className={`toast ${t.type} ${t.exiting ? "exiting" : ""}`}>
-          {t.type === "success" && <CheckCircleOutlinedIcon style={{ color: "var(--ios-color-green)" }} />}
-          {t.type === "error" && <ErrorOutlineIcon style={{ color: "var(--ios-color-red)" }} />}
-          {t.type === "info" && <InfoOutlinedIcon style={{ color: "var(--ios-color-blue)" }} />}
-          {t.type === "warning" && <WarningAmberOutlinedIcon style={{ color: "var(--ios-color-orange)" }} />}
-          <span style={{ flex: 1, fontSize: "var(--ios-fs-footnote)" }}>{t.message}</span>
+          {t.type === "success" && <CheckCircleOutlinedIcon style={{ color: "var(--color-secondary)" }} />}
+          {t.type === "error" && <ErrorOutlineIcon style={{ color: "var(--color-danger)" }} />}
+          {t.type === "info" && <InfoOutlinedIcon style={{ color: "var(--color-primary)" }} />}
+          {t.type === "warning" && <WarningAmberOutlinedIcon style={{ color: "var(--color-warning)" }} />}
+          <span style={{ flex: 1, fontSize: "var(--hig-fs-footnote)" }}>{t.message}</span>
           <button className="btn-ghost" onClick={() => onRemove(t.id)} style={{ padding: "2px", minWidth: "auto" }} aria-label="Tutup notifikasi">
             <CloseOutlinedIcon style={{ fontSize: "1rem" }} />
           </button>
@@ -620,13 +621,19 @@ export default function App() {
   const [autoRekapActive, setAutoRekapActive] = useState(true);
 
   // Absensi Page States
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
   const [selectedJam, setSelectedJam] = useState("1");
   const [schedule, setSchedule] = useState([]);
   const [attendanceLogs, setAttendanceLogs] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [absensiStatusFilter, setAbsensiStatusFilter] = useState("SEMUA");
+  const [selectedTeachers, setSelectedTeachers] = useState([]);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
 
   // Sidebar Collapse State (desktop only)
@@ -885,6 +892,55 @@ export default function App() {
     }
   };
 
+  const handleBulkChangeStatus = async (status) => {
+    if (!hasPermission('input_absensi')) {
+      showToast("Anda tidak memiliki hak akses untuk menginput absensi.", "error");
+      return;
+    }
+    if (selectedTeachers.length === 0) return;
+
+    const activeTeachers = getTeachersForSelectedJam();
+    const targets = activeTeachers.filter(t => selectedTeachers.includes(t.nama_guru.toLowerCase()));
+
+    if (targets.length === 0) return;
+
+    setActionLoading(true);
+    try {
+      targets.forEach(t => {
+        setRemovingTeachers(prev => {
+          const next = new Set(prev);
+          next.add(t.nama_guru.toLowerCase());
+          return next;
+        });
+      });
+
+      const apiPromise = attendanceApi.submitAbsen({
+        jam: selectedJam,
+        tanggal: selectedDate,
+        data: targets.map(t => ({
+          nama_guru: t.nama_guru,
+          kelas: t.kelas || "",
+          mapel: t.mapel || "",
+          status: status
+        }))
+      });
+      const delayPromise = new Promise(resolve => setTimeout(resolve, 250));
+      await Promise.all([apiPromise, delayPromise]);
+
+      addLocalLog("INPUT_ABSEN_MASSAL", `Mengubah status absensi massal ${targets.length} guru menjadi ${status} (Jam ${selectedJam})`);
+      showToast(`${targets.length} guru ditandai ${status}`, "success");
+
+      setSelectedTeachers([]);
+      setIsSelectionMode(false);
+      await loadAbsensiData();
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      setRemovingTeachers(new Set());
+      setActionLoading(false);
+    }
+  };
+
   const handleConfirmChangePassword = async (e) => {
     e.preventDefault();
     if (!oldPasswordChange || !newPasswordChange || !confirmPasswordChange) {
@@ -978,23 +1034,10 @@ export default function App() {
       const now = Date.now();
       
       // 1. Clean Log Aktivitas Absensi
-      let logsCleanedCount = 0;
-      if (logRetentionDays !== -1) {
-        const maxAgeMs = logRetentionDays * 24 * 60 * 60 * 1000;
-        setLocalLogs(prev => {
-          const filtered = prev.filter(log => {
-            const timestamp = log.timestamp || log.time || log.date;
-            if (!timestamp) return true;
-            const logTime = new Date(timestamp).getTime();
-            const keep = (now - logTime) <= maxAgeMs;
-            if (!keep) logsCleanedCount++;
-            return keep;
-          });
-          localStorage.setItem("local_logs", JSON.stringify(filtered));
-          return filtered;
-        });
-      }
-
+      let logsCleanedCount = localLogs.length;
+      setLocalLogs([]);
+      localStorage.removeItem("local_logs");
+      
       // 2. Clean Task Queue Simulation
       const queueRetentionText = queueRetentionDays === -1 ? "Tidak Pernah" : `${queueRetentionDays} Hari`;
       addLocalLog("CLEANUP_MANUAL", `Pembersihan manual selesai. Terhapus ${logsCleanedCount} baris Log Aktivitas. Baris Task Queue (DONE/FAILED) di luar retensi (${queueRetentionText}) telah dibersihkan.`);
@@ -1052,7 +1095,6 @@ export default function App() {
       map[name.toLowerCase()] = { nama_guru: name, kelas: log.kelas || "Pengganti", mapel: log.mapel || "Lainnya", currentStatus: (log.status || "BELUM").toUpperCase() };
     });
     let list = Object.values(map).sort((a, b) => a.nama_guru.localeCompare(b.nama_guru));
-    list = list.filter(t => t.currentStatus === "BELUM");
     return list;
   };
 
@@ -1223,26 +1265,26 @@ export default function App() {
   const qFailed = serverStatus?.queue?.failed ?? 0;
   
   let queueLabel = "Normal";
-  let queueColor = "var(--ios-color-green)";
+  let queueColor = "var(--color-secondary)";
   if (qFailed > 0) {
     queueLabel = "Error";
-    queueColor = "var(--ios-color-red)";
+    queueColor = "var(--color-danger)";
   } else if (qProcessing > 0) {
     queueLabel = "Processing";
-    queueColor = "var(--ios-color-blue)";
+    queueColor = "var(--color-primary)";
   } else if (qPending > 0) {
     queueLabel = `${qPending} Pending`;
-    queueColor = "var(--ios-color-orange)";
+    queueColor = "var(--color-warning)";
   }
   
   let sysStatusLabel = "Stabil";
-  let sysStatusColor = "var(--ios-color-green)";
+  let sysStatusColor = "var(--color-secondary)";
   if (!isWaOnline || qFailed > 0) {
     sysStatusLabel = "Gangguan";
-    sysStatusColor = "var(--ios-color-red)";
+    sysStatusColor = "var(--color-danger)";
   } else if (!isSchedulerActive || qPending > 0 || qProcessing > 0) {
     sysStatusLabel = "Perlu Perhatian";
-    sysStatusColor = "var(--ios-color-orange)";
+    sysStatusColor = "var(--color-warning)";
   }
 
   return (
@@ -1252,30 +1294,30 @@ export default function App() {
       {/* ═══ 1. LOGIN SCREEN ═══ */}
       {!token ? (
         <div className="scroll-inertia" style={{ width: "100%", height: "100%" }}>
-          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100%", padding: "var(--ios-space-32) var(--ios-space-16)" }}>
-            <IOSCard style={{ width: "100%", maxWidth: "380px", padding: "var(--ios-space-24)" }}>
-              <div style={{ textAlign: "center", marginBottom: "var(--ios-space-24)" }}>
-                <SchoolOutlinedIcon style={{ fontSize: "2.8rem", color: "var(--ios-color-blue)", marginBottom: "var(--ios-space-8)" }} />
-                <h2 style={{ fontSize: "var(--ios-fs-title-1)", fontWeight: 700, letterSpacing: "-0.03em" }}>MA. Miftahul Ulum 2</h2>
+          <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100%", padding: "var(--space-32) var(--space-16)" }}>
+            <IOSCard style={{ width: "100%", maxWidth: "380px", padding: "var(--space-24)" }}>
+              <div style={{ textAlign: "center", marginBottom: "var(--space-24)" }}>
+                <SchoolOutlinedIcon style={{ fontSize: "2.8rem", color: "var(--color-primary)", marginBottom: "var(--space-8)" }} />
+                <h2 style={{ fontSize: "var(--hig-fs-large-title)", fontWeight: 700, letterSpacing: "-0.03em" }}>MA. Miftahul Ulum 2</h2>
               </div>
 
               {loginError && (
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)", background: "var(--ios-color-red-tint)", padding: "10px 14px", borderRadius: "var(--ios-radius-inner)", fontSize: "var(--ios-fs-footnote)", color: "var(--ios-color-red)", marginBottom: "var(--ios-space-16)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", background: "rgba(255, 59, 48, 0.15)", padding: "var(--space-12) var(--space-16)", borderRadius: "var(--radius-small)", fontSize: "var(--hig-fs-footnote)", color: "var(--color-danger)", marginBottom: "var(--space-16)" }}>
                   <ErrorOutlineIcon style={{ fontSize: "1.1rem" }} />
                   {loginError}
                 </div>
               )}
 
-              <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-16)" }}>
+              <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
                 <div className="ios-input-wrapper">
-                  <label style={{ fontSize: "var(--ios-fs-footnote)", fontWeight: "600", color: "var(--ios-color-text-secondary)" }}>
+                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>
                     Nomor WhatsApp Pengawas
                   </label>
                   <IOSInput type="tel" placeholder="628123456789" value={phone} onChange={(e) => setPhone(e.target.value)} ariaLabel="Nomor WhatsApp" />
                 </div>
                 
                 <div className="ios-input-wrapper">
-                  <label style={{ fontSize: "var(--ios-fs-footnote)", fontWeight: "600", color: "var(--ios-color-text-secondary)" }}>
+                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>
                     Password
                   </label>
                   <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
@@ -1310,7 +1352,7 @@ export default function App() {
                         background: "none",
                         border: "none",
                         cursor: "pointer",
-                        color: "var(--ios-color-text-secondary)",
+                        color: "var(--color-text-secondary)",
                         padding: "0",
                         outline: "none"
                       }}
@@ -1336,20 +1378,20 @@ export default function App() {
         <>
           {/* ═══ 2. SIDEBAR (Desktop Settings List Style) ═══ */}
           <aside className={`sidebar${sidebarCollapsed ? " collapsed" : ""}`}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-24)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                <SchoolOutlinedIcon style={{ fontSize: "1.8rem", color: "var(--ios-color-blue)" }} />
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-24)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+                <SchoolOutlinedIcon style={{ fontSize: "1.8rem", color: "var(--color-primary)" }} />
                 <div>
-                  <h2 style={{ fontSize: "var(--ios-fs-headline)", fontWeight: "600", letterSpacing: "-0.02em" }}>MA. Miftahul Ulum 2</h2>
+                  <h2 style={{ fontSize: "var(--hig-fs-headline)", fontWeight: "600", letterSpacing: "-0.02em" }}>MA. Miftahul Ulum 2</h2>
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", padding: "8px 12px", borderRadius: "var(--ios-radius-inner)", background: "var(--ios-color-bg-secondary)", border: "0.5px solid var(--ios-color-separator)", fontSize: "var(--ios-fs-footnote)" }}>
-                <FiberManualRecordIcon style={{ fontSize: "0.6rem", color: isWaOnline ? "var(--ios-color-green)" : "var(--ios-color-red)" }} />
-                <span style={{ color: "var(--ios-color-text-secondary)", fontWeight: 500 }}>WhatsApp Server · <strong style={{ color: isWaOnline ? "var(--ios-color-green)" : "var(--ios-color-red)" }}>{isWaOnline ? "Online" : "Offline"}</strong></span>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", padding: "var(--space-8) var(--space-12)", borderRadius: "var(--radius-small)", background: "var(--color-surface)", border: "0.5px solid var(--color-separator)", fontSize: "var(--hig-fs-footnote)" }}>
+                <FiberManualRecordIcon style={{ fontSize: "0.6rem", color: isWaOnline ? "var(--color-secondary)" : "var(--color-danger)" }} />
+                <span style={{ color: "var(--color-text-secondary)", fontWeight: 500 }}>WhatsApp Server · <strong style={{ color: isWaOnline ? "var(--color-secondary)" : "var(--color-danger)" }}>{isWaOnline ? "Online" : "Offline"}</strong></span>
               </div>
 
-              <nav style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <nav style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
                 <button onClick={() => setActiveTab("absensi")} className={`sidebar-nav-item ${activeTab === "absensi" ? "active" : ""}`} aria-label="Halaman Absen Harian">
                   <CalendarMonthOutlinedIcon /> Absen Harian
                 </button>
@@ -1369,12 +1411,12 @@ export default function App() {
               </nav>
             </div>
 
-            <div style={{ borderTop: "0.5px solid var(--ios-color-separator)", paddingTop: "var(--ios-space-16)", display: "flex", flexDirection: "column", gap: "var(--ios-space-8)" }}>
+            <div style={{ borderTop: "0.5px solid var(--color-separator)", paddingTop: "var(--space-16)", display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
               <div style={{ padding: "0 4px", marginBottom: "4px" }}>
-                <div style={{ fontSize: "var(--ios-fs-footnote)", fontWeight: "600", color: "var(--ios-color-text-primary)", display: "flex", alignItems: "center", gap: "6px" }}>
+                <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-primary)", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
                   <PersonOutlineOutlinedIcon style={{ fontSize: "1rem" }} /> {user?.name}
                 </div>
-                <div style={{ fontSize: "var(--ios-fs-caption)", color: "var(--ios-color-text-secondary)", marginTop: "2px", paddingLeft: "22px" }}>
+                <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "2px", paddingLeft: "22px" }}>
                   {user?.phone} · <strong style={{ textTransform: "uppercase" }}>{user?.role || "USER"}</strong>
                 </div>
               </div>
@@ -1407,7 +1449,7 @@ export default function App() {
           {/* ═══ 4. MAIN CONTAINER ═══ */}
           <main className={`main-content${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
             {/* Mobile Navigation Header */}
-             <header className="mobile-header" style={{ justifyContent: "space-between", padding: "0 16px" }}>
+             <header className="mobile-header" style={{ justifyContent: "space-between", padding: "0 var(--space-16)" }}>
               <div style={{ width: "80px", display: "flex", alignItems: "center" }}>
                 {/* Desktop sidebar toggle — mobile-only slot keeps SchoolIcon */}
                 <button
@@ -1418,7 +1460,7 @@ export default function App() {
                 >
                   <SidebarToggleIcon style={{ fontSize: "1.25rem" }} />
                 </button>
-                <SchoolOutlinedIcon className="mobile-only" style={{ fontSize: "1.2rem", color: "var(--ios-color-text-secondary)" }} />
+                <SchoolOutlinedIcon className="mobile-only" style={{ fontSize: "1.2rem", color: "var(--color-text-secondary)" }} />
               </div>
               <h2 className="ios-nav-bar-title" style={{ flex: 1, textAlign: "center" }}>
                 {activeTab === "absensi" && "Absensi Harian"}
@@ -1426,8 +1468,8 @@ export default function App() {
                 {activeTab === "admin" && "Panel Kontrol"}
                 {activeTab === "permissions" && "Pengaturan Akses"}
               </h2>
-              <div style={{ width: "80px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "2px", fontSize: "10px", fontWeight: "600", color: isWaOnline ? "var(--ios-color-green)" : "var(--ios-color-red)" }}>
+              <div style={{ width: "80px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "var(--space-8)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "2px", fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: isWaOnline ? "var(--color-secondary)" : "var(--color-danger)" }}>
                   <FiberManualRecordIcon style={{ fontSize: "0.55rem" }} />
                   <span>{isWaOnline ? "ON" : "OFF"}</span>
                 </div>
@@ -1439,8 +1481,8 @@ export default function App() {
                     width: "28px", 
                     height: "28px", 
                     borderRadius: "50%", 
-                    background: "var(--ios-color-bg-secondary)", 
-                    border: "0.5px solid var(--ios-color-separator)", 
+                    background: "var(--color-surface)", 
+                    border: "0.5px solid var(--color-separator)", 
                     display: "flex", 
                     justifyContent: "center", 
                     alignItems: "center", 
@@ -1448,7 +1490,7 @@ export default function App() {
                   }}
                   aria-label="Profil Pengguna"
                 >
-                  <PersonOutlineOutlinedIcon style={{ fontSize: "1rem", color: "var(--ios-color-text-primary)" }} />
+                  <PersonOutlineOutlinedIcon style={{ fontSize: "1rem", color: "var(--color-text-primary)" }} />
                 </button>
               </div>
             </header>
@@ -1457,77 +1499,163 @@ export default function App() {
             {activeTab === "absensi" && (
               <div className="scroll-inertia animate-slide-up" style={{ flex: 1 }}>
                 <div className="main-content-scrollable">
-                  <div style={{ fontSize: "var(--fs-caption-2)", color: "var(--label-secondary)", padding: "0 var(--sp-4)", letterSpacing: "var(--ls-caption)", textTransform: "uppercase" }}>
+                  <div style={{ fontSize: "var(--hig-fs-caption)", color: "var(--color-text-secondary)", padding: "0 var(--space-4)", letterSpacing: "var(--ls-caption)", textTransform: "uppercase" }}>
                     {getFormattedDateIndo(selectedDate)} · {getFormattedTime()} WIB
                   </div>
                   <div className="absensi-grid">
                     
                     {/* Left Grid: Attendance Actions */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--sp-16)" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
                       
-                      {/* Configuration Controls Grouped List */}
-                      <IOSSection title="Konfigurasi Sesi & Hari">
-                        <IOSList>
-                          <IOSListRow rightContent={
+                      {/* Configuration Controls & Session KBM */}
+                      <IOSCard className="session-config-card">
+                        <div className="session-config-wrapper">
+                          {/* Tanggal */}
+                          <div className="session-config-tanggal">
+                            <div className="session-config-tanggal-text">
+                              <div className="session-config-date">
+                                {getFormattedDateIndo(selectedDate).split(",")[1]?.trim() || getFormattedDateIndo(selectedDate)}
+                              </div>
+                              <div className="session-config-day">
+                                {getFormattedDateIndo(selectedDate).split(",")[0] || "Hari"}
+                              </div>
+                            </div>
                             <AppleDatePicker value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
-                          }>
-                            <span style={{ fontSize: "var(--fs-body)", fontWeight: 500, color: "var(--label-primary)" }}>Tanggal Absensi</span>
-                          </IOSListRow>
-                          <IOSListRow rightContent={
-                            <IOSSegmentedControl
-                              segments={[
-                                { value: "1", label: "Jam 1" },
-                                { value: "2", label: "Jam 2" },
-                                { value: "3", label: "Jam 3" }
-                              ]}
-                              selectedValue={selectedJam}
-                              onChange={setSelectedJam}
-                            />
-                          }>
-                            <span style={{ fontSize: "var(--fs-body)", fontWeight: 500, color: "var(--label-primary)" }}>Sesi KBM Aktif</span>
-                          </IOSListRow>
-                        </IOSList>
-                      </IOSSection>
+                          </div>
 
-                      {/* Bulk Actions Grouped List */}
-                      <IOSSection title="Tindakan Massal Sesi Ini">
-                        <IOSList>
-                          <IOSListRow interactive onClick={() => handleBulkActionInitiate("HADIR")} chevron>
-                            <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-12)", width: "100%", minHeight: "44px" }}>
-                              <CheckCircleOutlinedIcon style={{ color: "var(--green)", fontSize: "1.3rem" }} />
-                              <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "left" }}>
-                                <span style={{ fontSize: "var(--fs-body)", fontWeight: 600, color: "var(--green)" }}>Tandai Hadir Semua Guru</span>
-                                <span style={{ fontSize: "var(--fs-caption-2)", color: "var(--label-secondary)", fontWeight: 400 }}>Semua guru tersisa akan ditandai hadir.</span>
+                          {/* Divider */}
+                          <div className="session-config-divider-line" />
+
+                          {/* Sesi KBM */}
+                          <div className="session-config-sesi">
+                            <div className="session-config-sesi-label">Sesi KBM Aktif</div>
+                            <div className="session-config-sesi-control">
+                              <IOSSegmentedControl
+                                segments={[
+                                  { value: "1", label: "Jam 1" },
+                                  { value: "2", label: "Jam 2" },
+                                  { value: "3", label: "Jam 3" }
+                                ]}
+                                selectedValue={selectedJam}
+                                onChange={setSelectedJam}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </IOSCard>
+
+                      {/* Ringkasan Status Section */}
+                      {(() => {
+                        const allSessionTeachers = getTeachersForSelectedJam();
+                        const countHadir = allSessionTeachers.filter(t => t.currentStatus === "HADIR").length;
+                        const countAlpa = allSessionTeachers.filter(t => t.currentStatus === "ALPHA").length;
+                        const countIzin = allSessionTeachers.filter(t => t.currentStatus === "IZIN").length;
+                        const countSakit = allSessionTeachers.filter(t => t.currentStatus === "SAKIT").length;
+                        const countLibur = allSessionTeachers.filter(t => t.currentStatus === "LIBUR").length;
+
+                        const toggleStatusFilter = (status) => {
+                          if (absensiStatusFilter === status) {
+                            setAbsensiStatusFilter("SEMUA");
+                          } else {
+                            setAbsensiStatusFilter(status);
+                          }
+                        };
+
+                        return (
+                          <IOSSection title="Ringkasan Status">
+                            <div className="absensi-summary-grid">
+                              <div
+                                className={`absensi-summary-card ${absensiStatusFilter === "HADIR" ? "active active-hadir" : ""}`}
+                                onClick={() => toggleStatusFilter("HADIR")}
+                              >
+                                <span className="absensi-summary-count" style={{ color: "var(--color-secondary)" }}>{countHadir}</span>
+                                <span className="absensi-summary-label" style={{ color: "var(--color-secondary)" }}>Hadir</span>
+                              </div>
+                              <div
+                                className={`absensi-summary-card ${absensiStatusFilter === "ALPHA" ? "active active-alpa" : ""}`}
+                                onClick={() => toggleStatusFilter("ALPHA")}
+                              >
+                                <span className="absensi-summary-count" style={{ color: "var(--color-danger)" }}>{countAlpa}</span>
+                                <span className="absensi-summary-label" style={{ color: "var(--color-danger)" }}>Alpa</span>
+                              </div>
+                              <div
+                                className={`absensi-summary-card ${absensiStatusFilter === "IZIN" ? "active active-izin" : ""}`}
+                                onClick={() => toggleStatusFilter("IZIN")}
+                              >
+                                <span className="absensi-summary-count" style={{ color: "var(--color-warning)" }}>{countIzin}</span>
+                                <span className="absensi-summary-label" style={{ color: "var(--color-warning)" }}>Izin</span>
+                              </div>
+                              <div
+                                className={`absensi-summary-card ${absensiStatusFilter === "SAKIT" ? "active active-sakit" : ""}`}
+                                onClick={() => toggleStatusFilter("SAKIT")}
+                              >
+                                <span className="absensi-summary-count" style={{ color: "var(--color-purple)" }}>{countSakit}</span>
+                                <span className="absensi-summary-label" style={{ color: "var(--color-purple)" }}>Sakit</span>
+                              </div>
+                              <div
+                                className={`absensi-summary-card ${absensiStatusFilter === "LIBUR" ? "active active-libur" : ""}`}
+                                onClick={() => toggleStatusFilter("LIBUR")}
+                              >
+                                <span className="absensi-summary-count" style={{ color: "var(--color-primary)" }}>{countLibur}</span>
+                                <span className="absensi-summary-label" style={{ color: "var(--color-primary)" }}>Libur</span>
                               </div>
                             </div>
-                          </IOSListRow>
-                          <IOSListRow interactive onClick={() => handleBulkActionInitiate("ALPHA")} chevron>
-                            <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-12)", width: "100%", minHeight: "44px" }}>
-                              <ErrorOutlineIcon style={{ color: "var(--red)", fontSize: "1.3rem" }} />
-                              <div style={{ display: "flex", flexDirection: "column", gap: "2px", textAlign: "left" }}>
-                                <span style={{ fontSize: "var(--fs-body)", fontWeight: 600, color: "var(--red)" }}>Tandai Alpa Semua Guru</span>
-                                <span style={{ fontSize: "var(--fs-caption-2)", color: "var(--label-secondary)", fontWeight: 400 }}>Semua guru tersisa akan ditandai alpa.</span>
-                              </div>
-                            </div>
-                          </IOSListRow>
-                        </IOSList>
-                      </IOSSection>
+                          </IOSSection>
+                        );
+                      })()}
 
                       {/* Teachers Attendance Sheet */}
                       {(() => {
-                        const activeTeachers = getTeachersForSelectedJam();
+                        const allSessionTeachers = getTeachersForSelectedJam();
+                        const activeTeachers = allSessionTeachers.filter(t => {
+                          if (absensiStatusFilter === "SEMUA") return true;
+                          return t.currentStatus === absensiStatusFilter;
+                        });
+                        
                         const pendingRemoveCount = activeTeachers.filter(t => removingTeachers.has(t.nama_guru.toLowerCase())).length;
                         const displayCount = Math.max(0, activeTeachers.length - pendingRemoveCount);
                         const hasScheduleForSelectedJam = schedule.some(r => String(r.jam).trim() === String(selectedJam).trim());
                         
                         const titleNode = (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <span style={{ fontSize: "var(--fs-caption)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "var(--ls-caption)", color: "var(--label-secondary)" }}>
-                              Daftar Guru Belum Diabsen
-                            </span>
-                            <span style={{ fontSize: "var(--fs-subheadline)", color: "var(--label-secondary)", fontWeight: 400, textTransform: "none" }}>
-                              {displayCount} Guru Tersisa
-                            </span>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                              <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "var(--ls-caption)", color: "var(--color-text-secondary)" }}>
+                                Daftar Kehadiran Guru
+                              </span>
+                              <span style={{ fontSize: "var(--hig-fs-subheadline)", color: "var(--color-text-secondary)", fontWeight: 400, textTransform: "none" }}>
+                                {displayCount} Guru ({absensiStatusFilter === "SEMUA" ? "Semua Status" : absensiStatusFilter})
+                              </span>
+                            </div>
+                            {displayCount > 0 && (
+                              <button 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  if (isSelectionMode) {
+                                    setSelectedTeachers([]);
+                                  }
+                                  setIsSelectionMode(!isSelectionMode);
+                                }}
+                                style={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: "5px",
+                                  background: "none",
+                                  border: "1px solid var(--color-primary)",
+                                  borderRadius: "var(--radius-pill)",
+                                  color: "var(--color-primary)",
+                                  padding: "6px 14px",
+                                  fontSize: "var(--hig-fs-footnote)",
+                                  fontWeight: "600",
+                                  cursor: "pointer",
+                                  transition: "background 150ms var(--ease-out)"
+                                }}
+                                className="ios-outline-btn"
+                              >
+                                {isSelectionMode
+                                  ? <><CloseOutlinedIcon style={{ fontSize: "0.85rem" }} /> Batal</>
+                                  : <><PeopleOutlinedIcon style={{ fontSize: "0.95rem" }} /> Pilih Guru</>}
+                              </button>
+                            )}
                           </div>
                         );
 
@@ -1535,7 +1663,7 @@ export default function App() {
                           <IOSSection title={titleNode}>
                             {dataLoading ? (
                               <IOSList>
-                                <div style={{ padding: "var(--sp-16)", display: "flex", flexDirection: "column", gap: "var(--sp-12)" }}>
+                                <div style={{ padding: "var(--space-16)", display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
                                   <IOSSkeleton height="24px" width="80%" />
                                   <IOSSkeleton height="16px" width="50%" />
                                   <IOSSkeleton height="24px" width="90%" />
@@ -1546,18 +1674,13 @@ export default function App() {
                               <IOSList>
                                 {hasScheduleForSelectedJam ? (
                                   <IOSEmptyState 
-                                    icon={<CheckCircleOutlinedIcon style={{ fontSize: "3.5rem", color: "var(--green)" }} />} 
-                                    title="Semua guru telah diabsen" 
-                                    description="Tidak ada guru yang perlu diproses pada sesi ini." 
-                                    action={
-                                      <IOSButton onClick={() => setActiveTab("rekap-bulanan")} variant="primary" style={{ marginTop: "12px", borderRadius: "14px" }} ariaLabel="Lihat Rekap">
-                                        Lihat Rekap
-                                      </IOSButton>
-                                    }
+                                    icon={<CheckCircleOutlinedIcon style={{ fontSize: "3.5rem", color: "var(--color-secondary)" }} />} 
+                                    title="Tidak ada data" 
+                                    description={`Tidak ada guru dengan status ${absensiStatusFilter} pada sesi ini.`} 
                                   />
                                 ) : (
                                   <IOSEmptyState 
-                                    icon={<SchoolOutlinedIcon style={{ fontSize: "3.5rem", color: "var(--label-secondary)" }} />} 
+                                    icon={<SchoolOutlinedIcon style={{ fontSize: "3.5rem", color: "var(--color-text-secondary)" }} />} 
                                     title="Tidak Ada Jadwal" 
                                     description={`Tidak ada guru yang terdaftar mengajar di KBM Jam ${selectedJam} pada hari ini.`} 
                                   />
@@ -1567,21 +1690,57 @@ export default function App() {
                               <IOSList style={{ overflow: "visible" }}>
                                 {activeTeachers.map((row, idx) => {
                                   const isRemoving = removingTeachers.has(row.nama_guru.toLowerCase());
+                                  const isSelected = selectedTeachers.includes(row.nama_guru.toLowerCase());
                                   return (
                                     <IOSListRow 
                                       key={idx} 
                                       chevron 
                                       interactive 
-                                      className={isRemoving ? "removing" : ""}
+                                      className={`${isRemoving ? "removing" : ""} ${isSelected ? "selected" : ""}`}
                                       onClick={() => handleTeacherNameClick(row.nama_guru, row)}
                                       rightContent={
                                         <IOSBadge status={row.currentStatus} />
                                       }
                                     >
-                                      <IOSAvatar name={row.nama_guru} />
+                                      {/* Circle Selection ala Apple Mail */}
+                                      {isSelectionMode && (
+                                        <div
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            const key = row.nama_guru.toLowerCase();
+                                            setSelectedTeachers(prev =>
+                                              prev.includes(key) ? prev.filter(n => n !== key) : [...prev, key]
+                                            );
+                                          }}
+                                          style={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            width: "44px",
+                                            height: "44px",
+                                            cursor: "pointer",
+                                            flexShrink: 0,
+                                          }}
+                                        >
+                                          <div style={{
+                                            width: "22px",
+                                            height: "22px",
+                                            borderRadius: "50%",
+                                            border: isSelected ? "none" : "1.5px solid var(--color-text-tertiary)",
+                                            background: isSelected ? "var(--color-primary)" : "transparent",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            transition: "all 150ms var(--ease-out)",
+                                          }}>
+                                            {isSelected && <span style={{ color: "#fff", fontSize: "13px", fontWeight: 700, lineHeight: 1 }}>✓</span>}
+                                          </div>
+                                        </div>
+                                      )}
+
                                       <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                        <span style={{ fontSize: "var(--fs-headline)", fontWeight: "600", color: "var(--label-primary)" }}>{row.nama_guru}</span>
-                                        <span style={{ fontSize: "var(--fs-caption)", color: "var(--label-secondary)" }}>{row.kelas} · {row.mapel}</span>
+                                        <span style={{ fontSize: "var(--hig-fs-headline)", fontWeight: "600", color: "var(--color-text-primary)" }}>{row.nama_guru}</span>
+                                        <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>{row.kelas} · {row.mapel}</span>
                                       </div>
                                     </IOSListRow>
                                   );
@@ -1593,7 +1752,7 @@ export default function App() {
                       })()}
 
                       {/* Mobile Actions Container (Tapped row triggers action) */}
-                      <div className="mobile-only" style={{ display: "none", flexDirection: "column", gap: "var(--sp-8)" }}>
+                      <div className="mobile-only" style={{ display: "none", flexDirection: "column", gap: "var(--space-8)" }}>
                         {getTeachersForSelectedJam().length > 0 && !dataLoading && (
                           <IOSSection title="Ketuk Guru di Atas untuk Melihat Detail & Riwayat Absensi" />
                         )}
@@ -1602,47 +1761,16 @@ export default function App() {
                     </div>
 
                     {/* Right Grid: Stats Ringkasan */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-16)" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
                       
-                      {/* Statistik Harian */}
-                      <IOSSection title="Informasi Sesi">
-                        <IOSList>
-                          <IOSListRow rightContent={<span style={{ fontWeight: 700, color: getBelumCount() > 0 ? "var(--ios-color-yellow)" : "var(--ios-color-green)" }}>{getBelumCount()} Sesi</span>}>
-                            <span style={{ fontSize: "var(--ios-fs-body)", color: "var(--ios-color-text-primary)" }}>Belum Diabsen</span>
-                          </IOSListRow>
-                          <IOSListRow rightContent={<span style={{ fontWeight: 600 }}>{schedule.length} Sesi</span>}>
-                            <span style={{ fontSize: "var(--ios-fs-body)", color: "var(--ios-color-text-primary)" }}>Total Sesi Hari Ini</span>
-                          </IOSListRow>
-                        </IOSList>
-                      </IOSSection>
-
-                      {/* Checklist Belum Absen */}
-                      <IOSSection title="Daftar Belum Absen">
-                        <IOSList>
-                          {getBelumList().length === 0 ? (
-                            <div style={{ padding: "var(--ios-space-24) var(--ios-space-16)", textAlign: "center" }}>
-                              <CheckCircleOutlinedIcon style={{ fontSize: "2rem", color: "var(--ios-color-green)", marginBottom: "var(--ios-space-8)" }} />
-                              <p style={{ fontSize: "var(--ios-fs-subheadline)", color: "var(--ios-color-text-secondary)" }}>Seluruh kehadiran guru telah lengkap diinput.</p>
-                            </div>
-                          ) : (
-                            <div style={{ maxHeight: "350px", overflowY: "auto" }} className="scroll-inertia">
-                              {getBelumList().map((item, i) => (
-                                <IOSListRow key={i} interactive onClick={() => { setSelectedJam(item.jam); }}
-                                  rightContent={<span style={{ background: "var(--ios-color-yellow-tint)", color: "var(--ios-color-yellow)", padding: "2px 8px", borderRadius: "var(--ios-radius-inner)", fontWeight: "700", fontSize: "var(--ios-fs-footnote)" }}>Jam {item.jam}</span>}>
-                                  <span style={{ fontSize: "var(--ios-fs-footnote)", fontWeight: "600", color: "var(--ios-color-text-primary)" }}>{item.nama_guru}</span>
-                                </IOSListRow>
-                              ))}
-                            </div>
-                          )}
-                        </IOSList>
-                      </IOSSection>
-
                     </div>
 
                   </div>
                 </div>
               </div>
             )}
+
+
 
             {/* ═══ TAB: REKAP BULANAN ═══ */}
             {activeTab === "rekap-bulanan" && (
@@ -1655,12 +1783,12 @@ export default function App() {
                       <IOSListRow rightContent={
                         <AppleSelect className="ios-picker" value={rekapMonth} onChange={(e) => setRekapMonth(parseInt(e.target.value))} options={indoMonths} ariaLabel="Pilih bulan rekap" />
                       }>
-                        <span style={{ fontSize: "var(--ios-fs-body)", fontWeight: 500, color: "var(--ios-color-text-primary)" }}>Bulan</span>
+                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 500, color: "var(--color-text-primary)" }}>Bulan</span>
                       </IOSListRow>
                       <IOSListRow rightContent={
                         <AppleSelect className="ios-picker" value={rekapYear} onChange={(e) => setRekapYear(parseInt(e.target.value))} options={[2025, 2026, 2027].map(y => ({ value: y, label: String(y) }))} ariaLabel="Pilih tahun rekap" />
                       }>
-                        <span style={{ fontSize: "var(--ios-fs-body)", fontWeight: 500, color: "var(--ios-color-text-primary)" }}>Tahun</span>
+                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 500, color: "var(--color-text-primary)" }}>Tahun</span>
                       </IOSListRow>
                       <IOSListRow rightContent={
                         <div className="ios-search-bar ios-search-minimal" style={{ maxWidth: "240px" }}>
@@ -1668,7 +1796,7 @@ export default function App() {
                           <IOSInput type="text" placeholder="Cari nama guru..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} ariaLabel="Cari nama guru" />
                         </div>
                       }>
-                        <span style={{ fontSize: "var(--ios-fs-body)", fontWeight: 500, color: "var(--ios-color-text-primary)" }}>Pencarian</span>
+                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 500, color: "var(--color-text-primary)" }}>Pencarian</span>
                       </IOSListRow>
                     </div>
                   </IOSSection>
@@ -1684,22 +1812,22 @@ export default function App() {
                             disabled={syncLoading || monthlyLoading}
                             chevron
                           >
-                            <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-16)", width: "100%", minHeight: "56px", textAlign: "left" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-16)", width: "100%", minHeight: "56px", textAlign: "left" }}>
                               <div style={{ 
                                 width: "32px", 
                                 height: "32px", 
-                                borderRadius: "8px", 
-                                background: "var(--blue-tint)", 
+                                borderRadius: "var(--radius-medium)", 
+                                background: "rgba(0, 122, 255, 0.15)", 
                                 display: "flex", 
                                 alignItems: "center", 
                                 justifyContent: "center", 
-                                color: "var(--blue)" 
+                                color: "var(--color-primary)" 
                               }}>
                                 {syncLoading ? <IOSLoading /> : <SyncOutlinedIcon style={{ fontSize: "1.25rem" }} />}
                               </div>
                               <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                <span style={{ fontSize: "var(--fs-body)", fontWeight: 600, color: "var(--label-primary)" }}>Sinkronisasi Data</span>
-                                <span style={{ fontSize: "var(--fs-caption-2)", color: "var(--label-secondary)", fontWeight: 400 }}>Perbarui data absensi dari Google Sheets.</span>
+                                <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--color-text-primary)" }}>Sinkronisasi Data</span>
+                                <span style={{ fontSize: "var(--hig-fs-caption)", color: "var(--color-text-secondary)", fontWeight: 400 }}>Perbarui data absensi dari Google Sheets.</span>
                               </div>
                             </div>
                           </IOSListRow>
@@ -1713,22 +1841,22 @@ export default function App() {
                               disabled={exportLoading}
                               chevron
                             >
-                              <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-16)", width: "100%", minHeight: "56px", textAlign: "left" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-16)", width: "100%", minHeight: "56px", textAlign: "left" }}>
                                 <div style={{ 
                                   width: "32px", 
                                   height: "32px", 
-                                  borderRadius: "8px", 
-                                  background: "var(--green-tint)", 
+                                  borderRadius: "var(--radius-medium)", 
+                                  background: "rgba(52, 199, 89, 0.15)", 
                                   display: "flex", 
                                   alignItems: "center", 
                                   justifyContent: "center", 
-                                  color: "var(--green)" 
+                                  color: "var(--color-secondary)" 
                                 }}>
                                   <PictureAsPdfOutlinedIcon style={{ fontSize: "1.25rem" }} />
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                  <span style={{ fontSize: "var(--fs-body)", fontWeight: 600, color: "var(--label-primary)" }}>Kirim Laporan PDF</span>
-                                  <span style={{ fontSize: "var(--fs-caption-2)", color: "var(--label-secondary)", fontWeight: 400 }}>Kirim laporan bulanan dalam format PDF.</span>
+                                  <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--color-text-primary)" }}>Kirim Laporan PDF</span>
+                                  <span style={{ fontSize: "var(--hig-fs-caption)", color: "var(--color-text-secondary)", fontWeight: 400 }}>Kirim laporan bulanan dalam format PDF.</span>
                                 </div>
                               </div>
                             </IOSListRow>
@@ -1739,22 +1867,22 @@ export default function App() {
                               disabled={exportLoading}
                               chevron
                             >
-                              <div style={{ display: "flex", alignItems: "center", gap: "var(--sp-16)", width: "100%", minHeight: "56px", textAlign: "left" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-16)", width: "100%", minHeight: "56px", textAlign: "left" }}>
                                 <div style={{ 
                                   width: "32px", 
                                   height: "32px", 
-                                  borderRadius: "8px", 
-                                  background: "var(--purple-tint)", 
+                                  borderRadius: "var(--radius-medium)", 
+                                  background: "rgba(191, 90, 242, 0.15)", 
                                   display: "flex", 
                                   alignItems: "center", 
                                   justifyContent: "center", 
-                                  color: "var(--purple)" 
+                                  color: "var(--color-primary)" 
                                 }}>
                                   <TableChartOutlinedIcon style={{ fontSize: "1.25rem" }} />
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                  <span style={{ fontSize: "var(--fs-body)", fontWeight: 600, color: "var(--label-primary)" }}>Kirim Laporan Excel</span>
-                                  <span style={{ fontSize: "var(--fs-caption-2)", color: "var(--label-secondary)", fontWeight: 400 }}>Kirim laporan bulanan dalam format Excel.</span>
+                                  <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--color-text-primary)" }}>Kirim Laporan Excel</span>
+                                  <span style={{ fontSize: "var(--hig-fs-caption)", color: "var(--color-text-secondary)", fontWeight: 400 }}>Kirim laporan bulanan dalam format Excel.</span>
                                 </div>
                               </div>
                             </IOSListRow>
@@ -1768,7 +1896,7 @@ export default function App() {
                   <IOSSection title={`Ringkasan Kehadiran Periode ${indoMonths.find(m => m.value === rekapMonth)?.label} ${rekapYear}`}>
                     {monthlyLoading ? (
                       <IOSCard>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-12)" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
                           <IOSSkeleton height="24px" width="100%" />
                           <IOSSkeleton height="24px" width="100%" />
                           <IOSSkeleton height="24px" width="100%" />
@@ -1783,8 +1911,8 @@ export default function App() {
                         {/* Desktop View: Table */}
                         <div className="desktop-only">
                           <IOSCard style={{ padding: 0, overflow: "hidden" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "var(--ios-space-8) var(--ios-space-16) 0" }}>
-                              <span style={{ fontSize: "var(--ios-fs-headline)", fontWeight: 600 }}>Statistik Guru</span>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "var(--space-8) var(--space-16) 0" }}>
+                              <span style={{ fontSize: "var(--hig-fs-headline)", fontWeight: 600 }}>Statistik Guru</span>
                               <IOSButton onClick={loadRekapBulanan} disabled={monthlyLoading} variant="tertiary" style={{ minHeight: "36px" }} ariaLabel="Muat ulang rekap">
                                 <SyncOutlinedIcon style={{ fontSize: "0.95rem" }} /> Segarkan
                               </IOSButton>
@@ -1797,29 +1925,29 @@ export default function App() {
                                     <th>Nama Guru</th>
                                     <th style={{ textAlign: "center" }}>JTM</th>
                                     <th style={{ textAlign: "center" }}>Jadwal</th>
-                                    <th style={{ textAlign: "center", color: "var(--ios-color-green)" }}>Hadir</th>
-                                    <th style={{ textAlign: "center", color: "var(--ios-color-yellow)" }}>Izin</th>
-                                    <th style={{ textAlign: "center", color: "var(--ios-color-orange)" }}>Sakit</th>
-                                    <th style={{ textAlign: "center", color: "var(--ios-color-purple)" }}>Libur</th>
-                                    <th style={{ textAlign: "center", color: "var(--ios-color-red)" }}>Alpa</th>
+                                    <th style={{ textAlign: "center", color: "var(--color-secondary)" }}>Hadir</th>
+                                    <th style={{ textAlign: "center", color: "var(--color-warning)" }}>Izin</th>
+                                    <th style={{ textAlign: "center", color: "var(--color-warning)" }}>Sakit</th>
+                                    <th style={{ textAlign: "center", color: "var(--color-primary)" }}>Libur</th>
+                                    <th style={{ textAlign: "center", color: "var(--color-danger)" }}>Alpa</th>
                                   </tr>
                                 </thead>
                                 <tbody>
                                   {filteredMonthlyStats.map((row, idx) => (
                                     <tr key={idx}>
-                                      <td style={{ paddingLeft: "var(--ios-space-16)" }}>{idx + 1}</td>
+                                      <td style={{ paddingLeft: "var(--space-16)" }}>{idx + 1}</td>
                                       <td>
-                                        <span onClick={() => handleTeacherNameClick(row.nama_guru)} style={{ fontWeight: "600", cursor: "pointer", color: "var(--ios-color-blue)", display: "inline-flex", alignItems: "center", gap: "6px" }} role="button" tabIndex={0}>
+                                        <span onClick={() => handleTeacherNameClick(row.nama_guru)} style={{ fontWeight: "600", cursor: "pointer", color: "var(--color-primary)", display: "inline-flex", alignItems: "center", gap: "var(--space-4)" }} role="button" tabIndex={0}>
                                           <PersonOutlineOutlinedIcon style={{ fontSize: "0.9rem" }} /> {row.nama_guru}
                                         </span>
                                       </td>
                                       <td style={{ textAlign: "center" }}>{row.jtm_7_hari}</td>
                                       <td style={{ textAlign: "center" }}>{row.jadwal_wajib}</td>
-                                      <td style={{ textAlign: "center", fontWeight: "700", color: "var(--ios-color-green)" }}>{row.hadir}</td>
-                                      <td style={{ textAlign: "center", color: "var(--ios-color-yellow)" }}>{row.izin}</td>
-                                      <td style={{ textAlign: "center", color: "var(--ios-color-orange)" }}>{row.sakit}</td>
-                                      <td style={{ textAlign: "center", color: "var(--ios-color-purple)" }}>{row.libur}</td>
-                                      <td style={{ textAlign: "center", fontWeight: "700", color: "var(--ios-color-red)" }}>{row.alpha}</td>
+                                      <td style={{ textAlign: "center", fontWeight: "700", color: "var(--color-secondary)" }}>{row.hadir}</td>
+                                      <td style={{ textAlign: "center", color: "var(--color-warning)" }}>{row.izin}</td>
+                                      <td style={{ textAlign: "center", color: "var(--color-warning)" }}>{row.sakit}</td>
+                                      <td style={{ textAlign: "center", color: "var(--color-primary)" }}>{row.libur}</td>
+                                      <td style={{ textAlign: "center", fontWeight: "700", color: "var(--color-danger)" }}>{row.alpha}</td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -1829,9 +1957,9 @@ export default function App() {
                         </div>
 
                         {/* Mobile View: Grouped List Row */}
-                        <div className="mobile-only" style={{ flexDirection: "column", gap: "var(--ios-space-8)", width: "100%" }}>
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 var(--ios-space-16)" }}>
-                            <span style={{ fontSize: "var(--ios-fs-footnote)", color: "var(--ios-color-text-secondary)" }}>Ketuk guru untuk melihat detail kehadiran bulanan</span>
+                        <div className="mobile-only" style={{ flexDirection: "column", gap: "var(--space-8)", width: "100%" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 var(--space-16)" }}>
+                            <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>Ketuk guru untuk melihat detail kehadiran bulanan</span>
                             <IOSButton onClick={loadRekapBulanan} disabled={monthlyLoading} variant="tertiary" style={{ minHeight: "36px", padding: "0 4px" }} ariaLabel="Muat ulang rekap">
                               <SyncOutlinedIcon style={{ fontSize: "0.95rem" }} /> Segarkan
                             </IOSButton>
@@ -1840,15 +1968,15 @@ export default function App() {
                             {filteredMonthlyStats.map((row, idx) => (
                               <IOSListRow key={idx} chevron interactive onClick={() => handleTeacherNameClick(row.nama_guru)}
                                 rightContent={
-                                  <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)" }}>
-                                    <span style={{ fontSize: "var(--ios-fs-footnote)", fontWeight: "600", color: "var(--ios-color-green)" }}>{row.hadir} H</span>
-                                    {row.alpha > 0 && <span style={{ fontSize: "var(--ios-fs-footnote)", fontWeight: "600", color: "var(--ios-color-red)" }}>{row.alpha} A</span>}
+                                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+                                    <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-secondary)" }}>{row.hadir} H</span>
+                                    {row.alpha > 0 && <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-danger)" }}>{row.alpha} A</span>}
                                   </div>
                                 }>
                                 <IOSAvatar name={row.nama_guru} />
                                 <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                  <span style={{ fontSize: "var(--ios-fs-headline)", fontWeight: "600", color: "var(--ios-color-text-primary)" }}>{row.nama_guru}</span>
-                                  <span style={{ fontSize: "var(--ios-fs-caption)", color: "var(--ios-color-text-secondary)" }}>{row.jtm_7_hari} JTM · {row.jadwal_wajib} Sesi Wajib</span>
+                                  <span style={{ fontSize: "var(--hig-fs-headline)", fontWeight: "600", color: "var(--color-text-primary)" }}>{row.nama_guru}</span>
+                                  <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>{row.jtm_7_hari} JTM · {row.jadwal_wajib} Sesi Wajib</span>
                                 </div>
                               </IOSListRow>
                             ))}
@@ -1866,7 +1994,7 @@ export default function App() {
             {activeTab === "admin" && (
               <div className="scroll-inertia animate-slide-up" style={{ flex: 1 }}>
                 <div className="main-content-scrollable">
-                  <div style={{ fontSize: "var(--ios-fs-footnote)", color: "var(--ios-color-text-secondary)", marginTop: "var(--ios-space-4)", marginBottom: "var(--ios-space-12)" }}>
+                  <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "var(--space-4)", marginBottom: "var(--space-12)" }}>
                     Manajemen scheduler, siaran pesan, alarm KBM, dan pengawasan sistem
                   </div>
 
@@ -1874,18 +2002,15 @@ export default function App() {
                   <div style={{ 
                     display: "grid", 
                     gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", 
-                    gap: "12px", 
-                    marginBottom: "var(--ios-space-16)"
+                    gap: "var(--space-12)", 
+                    marginBottom: "var(--space-16)"
                   }}>
                     {/* WA Server Metric Card */}
-                    <div style={{
-                      background: "var(--ios-color-bg-secondary)",
-                      border: "0.5px solid var(--ios-color-separator)",
-                      borderRadius: "12px",
-                      padding: "10px 14px",
+                    <IOSCard style={{
+                      padding: "var(--space-12) var(--space-16)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px"
+                      gap: "var(--space-8)"
                     }}>
                       <div style={{
                         display: "flex",
@@ -1893,30 +2018,27 @@ export default function App() {
                         justifyContent: "center",
                         width: "32px",
                         height: "32px",
-                        borderRadius: "8px",
-                        background: "rgba(10, 132, 255, 0.1)",
-                        color: "var(--ios-color-blue)"
+                        borderRadius: "var(--radius-medium)",
+                        background: "var(--color-primary-tint, rgba(10, 132, 255, 0.15))",
+                        color: "var(--color-primary)"
                       }}>
                         <PhoneAndroidOutlinedIcon style={{ fontSize: "1.2rem" }} />
                       </div>
                       <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: "10px", fontWeight: "600", color: "var(--ios-color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>WA Server</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
-                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isWaOnline ? "var(--ios-color-green)" : "var(--ios-color-red)" }}></span>
-                          <strong style={{ fontSize: "13px", color: isWaOnline ? "var(--ios-color-green)" : "var(--ios-color-red)" }}>{isWaOnline ? "Online" : "Offline"}</strong>
+                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>WA Server</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
+                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isWaOnline ? "var(--color-secondary)" : "var(--color-danger)" }}></span>
+                          <strong style={{ fontSize: "var(--hig-fs-footnote)", color: isWaOnline ? "var(--color-secondary)" : "var(--color-danger)" }}>{isWaOnline ? "Online" : "Offline"}</strong>
                         </div>
                       </div>
-                    </div>
+                    </IOSCard>
 
                     {/* Scheduler Metric Card */}
-                    <div style={{
-                      background: "var(--ios-color-bg-secondary)",
-                      border: "0.5px solid var(--ios-color-separator)",
-                      borderRadius: "12px",
-                      padding: "10px 14px",
+                    <IOSCard style={{
+                      padding: "var(--space-12) var(--space-16)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px"
+                      gap: "var(--space-8)"
                     }}>
                       <div style={{
                         display: "flex",
@@ -1924,30 +2046,27 @@ export default function App() {
                         justifyContent: "center",
                         width: "32px",
                         height: "32px",
-                        borderRadius: "8px",
-                        background: "rgba(255, 159, 10, 0.1)",
-                        color: "var(--ios-color-orange)"
+                        borderRadius: "var(--radius-medium)",
+                        background: "var(--color-warning-tint, rgba(255, 159, 10, 0.15))",
+                        color: "var(--color-warning)"
                       }}>
                         <CalendarMonthOutlinedIcon style={{ fontSize: "1.2rem" }} />
                       </div>
                       <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: "10px", fontWeight: "600", color: "var(--ios-color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Scheduler</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
-                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isSchedulerActive ? "var(--ios-color-green)" : "var(--ios-color-orange)" }}></span>
-                          <strong style={{ fontSize: "13px", color: isSchedulerActive ? "var(--ios-color-green)" : "var(--ios-color-orange)" }}>{isSchedulerActive ? "Aktif" : "Nonaktif"}</strong>
+                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Scheduler</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
+                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isSchedulerActive ? "var(--color-secondary)" : "var(--color-warning)" }}></span>
+                          <strong style={{ fontSize: "var(--hig-fs-footnote)", color: isSchedulerActive ? "var(--color-secondary)" : "var(--color-warning)" }}>{isSchedulerActive ? "Aktif" : "Nonaktif"}</strong>
                         </div>
                       </div>
-                    </div>
+                    </IOSCard>
 
                     {/* Task Queue Metric Card */}
-                    <div style={{
-                      background: "var(--ios-color-bg-secondary)",
-                      border: "0.5px solid var(--ios-color-separator)",
-                      borderRadius: "12px",
-                      padding: "10px 14px",
+                    <IOSCard style={{
+                      padding: "var(--space-12) var(--space-16)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px"
+                      gap: "var(--space-8)"
                     }}>
                       <div style={{
                         display: "flex",
@@ -1955,30 +2074,27 @@ export default function App() {
                         justifyContent: "center",
                         width: "32px",
                         height: "32px",
-                        borderRadius: "8px",
-                        background: "rgba(94, 92, 230, 0.1)",
-                        color: "var(--ios-color-purple)"
+                        borderRadius: "var(--radius-medium)",
+                        background: "var(--color-purple-tint, rgba(191, 90, 242, 0.15))",
+                        color: "var(--color-primary)"
                       }}>
                         <SyncOutlinedIcon style={{ fontSize: "1.2rem" }} />
                       </div>
                       <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: "10px", fontWeight: "600", color: "var(--ios-color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Task Queue</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
+                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Task Queue</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
                           <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: queueColor }}></span>
-                          <strong style={{ fontSize: "13px", color: queueColor }}>{queueLabel}</strong>
+                          <strong style={{ fontSize: "var(--hig-fs-footnote)", color: queueColor }}>{queueLabel}</strong>
                         </div>
                       </div>
-                    </div>
+                    </IOSCard>
 
                     {/* System Status Metric Card */}
-                    <div style={{
-                      background: "var(--ios-color-bg-secondary)",
-                      border: "0.5px solid var(--ios-color-separator)",
-                      borderRadius: "12px",
-                      padding: "10px 14px",
+                    <IOSCard style={{
+                      padding: "var(--space-12) var(--space-16)",
                       display: "flex",
                       alignItems: "center",
-                      gap: "10px"
+                      gap: "var(--space-8)"
                     }}>
                       <div style={{
                         display: "flex",
@@ -1986,61 +2102,61 @@ export default function App() {
                         justifyContent: "center",
                         width: "32px",
                         height: "32px",
-                        borderRadius: "8px",
-                        background: sysStatusLabel === "Stabil" ? "rgba(48, 209, 88, 0.1)" : sysStatusLabel === "Gangguan" ? "rgba(255, 69, 58, 0.1)" : "rgba(255, 159, 10, 0.1)",
+                        borderRadius: "var(--radius-medium)",
+                        background: sysStatusLabel === "Stabil" ? "var(--color-secondary-tint, rgba(48, 209, 88, 0.15))" : sysStatusLabel === "Gangguan" ? "var(--color-danger-tint, rgba(255, 59, 48, 0.15))" : "var(--color-warning-tint, rgba(255, 159, 10, 0.15))",
                         color: sysStatusColor
                       }}>
                         <SecurityOutlinedIcon style={{ fontSize: "1.2rem" }} />
                       </div>
                       <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: "10px", fontWeight: "600", color: "var(--ios-color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Status Sistem</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "2px" }}>
+                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Status Sistem</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
                           <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: sysStatusColor }}></span>
-                          <strong style={{ fontSize: "13px", color: sysStatusColor }}>{sysStatusLabel}</strong>
+                          <strong style={{ fontSize: "var(--hig-fs-footnote)", color: sysStatusColor }}>{sysStatusLabel}</strong>
                         </div>
                       </div>
-                    </div>
+                    </IOSCard>
                   </div>
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
                     {/* Combined Alarm & Auto Rekap Card */}
                     {(hasPermission('kirim_pengingat_whatsapp') || hasPermission('kelola_pengaturan_sistem')) && (
                       <IOSCard style={{ 
                         display: "flex", 
                         flexDirection: "column", 
-                        gap: "var(--ios-space-12)",
-                        padding: "16px"
+                        gap: "var(--space-12)",
+                        padding: "var(--space-16)"
                       }}>
                         {/* Section 1: Alarm KBM Manual */}
                         {hasPermission('kirim_pengingat_whatsapp') && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-8)" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)" }}>
-                              <NotificationsNoneOutlinedIcon style={{ color: "var(--ios-color-orange)", fontSize: "1.25rem" }} />
-                              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "var(--ios-color-text-primary)" }}>Alarm KBM Manual</h3>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+                              <NotificationsNoneOutlinedIcon style={{ color: "var(--color-warning)", fontSize: "1.25rem" }} />
+                              <h3 style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: 600, color: "var(--color-text-primary)" }}>Alarm KBM Manual</h3>
                             </div>
                             <div style={{ 
                               display: "flex", 
                               justifyContent: "space-between", 
                               alignItems: "center", 
-                              background: "var(--ios-color-bg-primary)", 
-                              padding: "10px 14px", 
-                              borderRadius: "8px", 
-                              border: "0.5px solid var(--ios-color-separator)", 
-                              fontSize: "12px", 
-                              color: "var(--ios-color-text-secondary)",
-                              gap: "12px",
+                              background: "var(--color-grouped-bg)", 
+                              padding: "var(--space-12) var(--space-16)", 
+                              borderRadius: "var(--radius-medium)", 
+                              border: "0.5px solid var(--color-separator)", 
+                              fontSize: "var(--hig-fs-caption)", 
+                              color: "var(--color-text-secondary)",
+                              gap: "var(--space-12)",
                               flexWrap: "wrap"
                             }}>
                               <div>
-                                Sistem Waktu: <strong style={{ color: "var(--ios-color-text-primary)" }}>{getFormattedTime()} WIB</strong> · Sasaran: Guru belum absen jam aktif
+                                Sistem Waktu: <strong style={{ color: "var(--color-text-primary)" }}>{getFormattedTime()} WIB</strong> · Sasaran: Guru belum absen jam aktif
                               </div>
-                              <IOSButton onClick={handleSendAlarm} disabled={alarmLoading || !isWaOnline} variant="primary" style={{ height: "32px", padding: "0 16px", borderRadius: "10px", fontSize: "12px" }} ariaLabel="Kirim alarm pengingat KBM">
+                              <IOSButton onClick={handleSendAlarm} disabled={alarmLoading || !isWaOnline} variant="primary" style={{ height: "32px", padding: "0 var(--space-16)", borderRadius: "var(--radius-medium)", fontSize: "var(--hig-fs-caption)" }} ariaLabel="Kirim alarm pengingat KBM">
                                 {alarmLoading ? <IOSLoading /> : <NotificationsNoneOutlinedIcon style={{ fontSize: "0.9rem", marginRight: "6px" }} />}
                                 {alarmLoading ? "Menyiarkan..." : "Kirim Alarm Pengingat"}
                               </IOSButton>
                             </div>
                             {!isWaOnline && (
-                              <p style={{ color: "var(--ios-color-red)", fontSize: "11px", margin: "2px 0 0 0" }}>
+                              <p style={{ color: "var(--color-danger)", fontSize: "var(--hig-fs-badge)", margin: "2px 0 0 0" }}>
                                 ⚠️ WhatsApp Server Offline. Fitur alarm dinonaktifkan.
                               </p>
                             )}
@@ -2049,15 +2165,15 @@ export default function App() {
 
                         {/* Divider */}
                         {hasPermission('kirim_pengingat_whatsapp') && hasPermission('kelola_pengaturan_sistem') && (
-                          <hr style={{ border: "none", borderTop: "0.5px solid var(--ios-color-separator)", margin: "8px 0" }} />
+                          <hr style={{ border: "none", borderTop: "0.5px solid var(--color-separator)", margin: "var(--space-8) 0" }} />
                         )}
 
                         {/* Section 2: Auto Rekap Harian */}
                         {hasPermission('kelola_pengaturan_sistem') && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-8)" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)" }}>
-                              <TuneOutlinedIcon style={{ color: "var(--ios-color-blue)", fontSize: "1.25rem" }} />
-                              <h3 style={{ fontSize: "14px", fontWeight: 600, color: "var(--ios-color-text-primary)" }}>Auto Rekap Harian</h3>
+                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+                              <TuneOutlinedIcon style={{ color: "var(--color-primary)", fontSize: "1.25rem" }} />
+                              <h3 style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: 600, color: "var(--color-text-primary)" }}>Auto Rekap Harian</h3>
                             </div>
                             
                             <IOSList style={{ margin: 0 }}>
@@ -2065,8 +2181,8 @@ export default function App() {
                                 <IOSSwitch checked={isSchedulerActive} onChange={handleToggleAutoRekap} ariaLabel="Toggle pengiriman rekap otomatis" />
                               }>
                                 <div style={{ display: "flex", flexDirection: "column" }}>
-                                  <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--ios-color-text-primary)" }}>Status Scheduler</span>
-                                  <span style={{ fontSize: "11px", color: "var(--ios-color-text-secondary)" }}>Kirim Pukul 14:30 WIB</span>
+                                  <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 600, color: "var(--color-text-primary)" }}>Status Scheduler</span>
+                                  <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)" }}>Kirim Pukul 14:30 WIB</span>
                                 </div>
                               </IOSListRow>
                             </IOSList>
@@ -2079,71 +2195,71 @@ export default function App() {
                     <div style={{ 
                       display: "grid", 
                       gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", 
-                      gap: "16px",
+                      gap: "var(--space-16)",
                       alignItems: "start"
                     }}>
                       {/* Left Column: Kelola Akun Guru & Log Aktivitas */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
                         {/* Kelola Akun Guru Card */}
                         {hasPermission('kelola_akun_guru') && (
-                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-12)" }}>
+                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)" }}>
-                                <ManageAccountsOutlinedIcon style={{ color: "var(--ios-color-green)", fontSize: "1.4rem" }} />
-                                <h3 style={{ fontSize: "var(--ios-fs-title-3)", fontWeight: 600 }}>Kelola Akun Guru</h3>
+                              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+                                <ManageAccountsOutlinedIcon style={{ color: "var(--color-secondary)", fontSize: "1.4rem" }} />
+                                <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Kelola Akun Guru</h3>
                               </div>
                               <button 
                                 type="button" 
                                 onClick={() => setShowManageTeacherModal(true)} 
                                 className="btn-ghost" 
-                                style={{ padding: "2px 8px", fontSize: "11px", color: "var(--ios-color-blue)", cursor: "pointer", display: "flex", alignItems: "center", border: "none", background: "none", fontWeight: "600" }}
+                                style={{ padding: "2px 8px", fontSize: "var(--hig-fs-badge)", color: "var(--color-primary)", cursor: "pointer", display: "flex", alignItems: "center", border: "none", background: "none", fontWeight: "600" }}
                               >
                                 Lihat Semua
                               </button>
                             </div>
                             
                             {/* Account Summary Stats Indicators */}
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", background: "var(--ios-color-bg-secondary)", padding: "8px 10px", borderRadius: "8px", border: "0.5px solid var(--ios-color-separator)", textAlign: "center" }}>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)", background: "var(--color-surface)", padding: "var(--space-8) var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", textAlign: "center" }}>
                               <div>
-                                <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--ios-color-green)" }}>
+                                <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-secondary)" }}>
                                   {getTeacherAccountSummary().userCount}
                                 </div>
-                                <div style={{ fontSize: "9px", color: "var(--ios-color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Guru</div>
+                                <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Guru</div>
                               </div>
-                              <div style={{ borderLeft: "0.5px solid var(--ios-color-separator)", borderRight: "0.5px solid var(--ios-color-separator)" }}>
-                                <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--ios-color-blue)" }}>
+                              <div style={{ borderLeft: "0.5px solid var(--color-separator)", borderRight: "0.5px solid var(--color-separator)" }}>
+                                <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-primary)" }}>
                                   {getTeacherAccountSummary().adminCount}
                                 </div>
-                                <div style={{ fontSize: "9px", color: "var(--ios-color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Admin</div>
+                                <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Admin</div>
                               </div>
                               <div>
-                                <div style={{ fontSize: "13px", fontWeight: "700", color: "var(--ios-color-purple)" }}>
+                                <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-primary)" }}>
                                   {getTeacherAccountSummary().superadminCount}
                                 </div>
-                                <div style={{ fontSize: "9px", color: "var(--ios-color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Super</div>
+                                <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Super</div>
                               </div>
                             </div>
 
                             {/* Recent Teacher List Summary (Latest 3 Teachers) */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "4px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)", marginTop: "4px" }}>
                               {contacts.length === 0 ? (
-                                <p style={{ color: "var(--ios-color-text-secondary)", fontSize: "var(--ios-fs-footnote)", textAlign: "center", padding: "8px" }}>
+                                <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", textAlign: "center", padding: "var(--space-8)" }}>
                                   Belum ada data guru pengajar.
                                 </p>
                               ) : (
                                 contacts.slice(0, 3).map((t, idx) => (
-                                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 10px", background: "var(--ios-color-bg-secondary)", borderRadius: "8px", border: "0.5px solid var(--ios-color-separator)", gap: "10px" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "8px", minWidth: 0, flex: 1 }}>
+                                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-8) var(--space-12)", background: "var(--color-surface)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", gap: "var(--space-8)" }}>
+                                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", minWidth: 0, flex: 1 }}>
                                       <IOSAvatar name={t.nama_guru || t.nama} />
                                       <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-                                        <span style={{ fontWeight: "600", color: "var(--ios-color-text-primary)", fontSize: "13px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.nama_guru || t.nama}</span>
-                                        <span style={{ fontSize: "10px", color: "var(--ios-color-text-secondary)" }}>{t.no_wa || t.nomor_wa || "-"}</span>
+                                        <span style={{ fontWeight: "600", color: "var(--color-text-primary)", fontSize: "var(--hig-fs-footnote)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.nama_guru || t.nama}</span>
+                                        <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)" }}>{t.no_wa || t.nomor_wa || "-"}</span>
                                       </div>
                                     </div>
                                     <IOSButton 
                                       onClick={() => { setTeacherToReset(t); setShowResetConfirm(true); }} 
                                       variant="secondary" 
-                                      style={{ padding: "0 8px", fontSize: "10px", height: "22px", borderRadius: "6px", flexShrink: 0 }}
+                                      style={{ padding: "0 8px", fontSize: "var(--hig-fs-badge)", height: "22px", borderRadius: "var(--radius-small)", flexShrink: 0 }}
                                       ariaLabel={`Reset sandi ${t.nama_guru || t.nama}`}
                                     >
                                       <KeyOutlinedIcon style={{ fontSize: "0.75rem", marginRight: "2px" }} /> Reset
@@ -2157,41 +2273,41 @@ export default function App() {
 
                         {/* Log Aktivitas Card */}
                         {hasPermission('lihat_log_aktivitas') && (
-                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-12)" }}>
+                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
                             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)" }}>
-                                <HistoryOutlinedIcon style={{ color: "var(--ios-color-blue)", fontSize: "1.4rem" }} />
-                                <h3 style={{ fontSize: "var(--ios-fs-title-3)", fontWeight: 600 }}>Log Aktivitas</h3>
+                              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+                                <HistoryOutlinedIcon style={{ color: "var(--color-primary)", fontSize: "1.4rem" }} />
+                                <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Log Aktivitas</h3>
                               </div>
                               {localLogs.length > 3 && (
                                 <button 
                                   type="button" 
                                   onClick={() => setLogLogsExpanded(!logLogsExpanded)} 
                                   className="btn-ghost" 
-                                  style={{ padding: "2px 8px", fontSize: "11px", color: "var(--ios-color-blue)", cursor: "pointer", display: "flex", alignItems: "center", border: "none", background: "none", fontWeight: "600" }}
+                                  style={{ padding: "2px 8px", fontSize: "var(--hig-fs-badge)", color: "var(--color-primary)", cursor: "pointer", display: "flex", alignItems: "center", border: "none", background: "none", fontWeight: "600" }}
                                 >
                                   {logLogsExpanded ? "Sembunyikan" : `Lihat Semua (${localLogs.length})`}
                                 </button>
                               )}
                             </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-8)", maxHeight: logLogsExpanded ? "280px" : "auto", overflowY: logLogsExpanded ? "auto" : "visible", paddingRight: "4px" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)", maxHeight: logLogsExpanded ? "280px" : "auto", overflowY: logLogsExpanded ? "auto" : "visible", paddingRight: "4px" }}>
                               {localLogs.length === 0 ? (
-                                <p style={{ color: "var(--ios-color-text-secondary)", fontSize: "var(--ios-fs-footnote)", textAlign: "center", padding: "16px" }}>
+                                <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", textAlign: "center", padding: "var(--space-16)" }}>
                                   Belum ada aktivitas tercatat pada sesi ini.
                                 </p>
                               ) : (
                                 (logLogsExpanded ? localLogs : localLogs.slice(0, 3)).map((log, idx) => (
-                                  <div key={idx} style={{ padding: "10px 12px", background: "var(--ios-color-bg-secondary)", borderRadius: "8px", border: "0.5px solid var(--ios-color-separator)", fontSize: "var(--ios-fs-footnote)", display: "flex", flexDirection: "column", gap: "4px" }}>
+                                  <div key={idx} style={{ padding: "var(--space-12)", background: "var(--color-surface)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", fontSize: "var(--hig-fs-footnote)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
                                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                      <strong style={{ color: "var(--ios-color-text-primary)", textTransform: "uppercase", fontSize: "10px", letterSpacing: "0.5px", background: "var(--ios-color-bg-tertiary)", padding: "2px 6px", borderRadius: "4px" }}>
+                                      <strong style={{ color: "var(--color-text-primary)", textTransform: "uppercase", fontSize: "var(--hig-fs-badge)", letterSpacing: "0.5px", background: "var(--color-grouped-bg)", padding: "2px 6px", borderRadius: "var(--radius-small)" }}>
                                         {log.action}
                                       </strong>
-                                      <span style={{ color: "var(--ios-color-text-tertiary)", fontSize: "10px" }}>
+                                      <span style={{ color: "var(--color-text-tertiary)", fontSize: "var(--hig-fs-badge)" }}>
                                         {new Date(log.timestamp).toLocaleString("id-ID")}
                                       </span>
                                     </div>
-                                    <div style={{ color: "var(--ios-color-text-primary)", fontWeight: 500 }}>{log.details}</div>
-                                    <div style={{ color: "var(--ios-color-text-secondary)", fontSize: "11px" }}>
+                                    <div style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{log.details}</div>
+                                    <div style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-badge)" }}>
                                       Pelaku: {log.operator_name} ({log.operator_phone || "Sistem"})
                                     </div>
                                   </div>
@@ -2203,21 +2319,21 @@ export default function App() {
                       </div>
 
                       {/* Right Column: Broadcast & Log Retention */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
                         {/* Broadcast Card */}
                         {hasPermission('kirim_pengumuman_whatsapp') && (
-                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-12)", overflow: "visible" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)" }}>
-                              <CampaignOutlinedIcon style={{ color: "var(--ios-color-purple)", fontSize: "1.4rem" }} />
-                              <h3 style={{ fontSize: "var(--ios-fs-title-3)", fontWeight: 600 }}>Siaran Pengumuman</h3>
+                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", overflow: "visible" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+                              <CampaignOutlinedIcon style={{ color: "var(--color-primary)", fontSize: "1.4rem" }} />
+                              <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Siaran Pengumuman</h3>
                             </div>
-                            <div style={{ background: "var(--ios-color-bg-primary)", padding: "10px 12px", borderRadius: "8px", border: "0.5px solid var(--ios-color-separator)", fontSize: "var(--ios-fs-footnote)", color: "var(--ios-color-text-secondary)" }}>
+                            <div style={{ background: "var(--color-grouped-bg)", padding: "var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>
                               Kirim pengumuman massal ke seluruh kontak guru atau guru piket hari ini secara instan.
                             </div>
                             
-                            <form onSubmit={handleSendBroadcast} style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-12)", overflow: "visible" }}>
-                              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                                <label htmlFor="broadcast-target" style={{ fontSize: "var(--ios-fs-caption)", fontWeight: "600", color: "var(--ios-color-text-secondary)" }}>Sasaran Penerima</label>
+                            <form onSubmit={handleSendBroadcast} style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", overflow: "visible" }}>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                                <label htmlFor="broadcast-target" style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Sasaran Penerima</label>
                                 <select 
                                   id="broadcast-target"
                                   value={broadcastTarget} 
@@ -2229,8 +2345,8 @@ export default function App() {
                                 </select>
                               </div>
 
-                              <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                                <label htmlFor="broadcast-msg" style={{ fontSize: "var(--ios-fs-caption)", fontWeight: "600", color: "var(--ios-color-text-secondary)" }}>Isi Pesan Siaran</label>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                                <label htmlFor="broadcast-msg" style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Isi Pesan Siaran</label>
                                 <textarea 
                                   id="broadcast-msg"
                                   placeholder="Tulis pesan pengumuman di sini..." 
@@ -2239,13 +2355,13 @@ export default function App() {
                                   onChange={handleBroadcastMessageChange} 
                                   style={{ 
                                     width: "100%", 
-                                    padding: "10px 12px", 
-                                    background: "var(--ios-color-bg-tertiary)", 
+                                    padding: "var(--space-12)", 
+                                    background: "var(--color-grouped-bg)", 
                                     border: "none", 
-                                    borderRadius: "var(--ios-radius-control)", 
-                                    color: "var(--ios-color-text-primary)", 
+                                    borderRadius: "var(--radius-medium)", 
+                                    color: "var(--color-text-primary)", 
                                     fontFamily: "inherit", 
-                                    fontSize: "var(--ios-fs-body)", 
+                                    fontSize: "var(--hig-fs-body)", 
                                     resize: "none", 
                                     overflowY: "hidden", 
                                     boxSizing: "border-box" 
@@ -2259,7 +2375,7 @@ export default function App() {
                               </IOSButton>
                             </form>
                             {!isWaOnline && (
-                              <p style={{ color: "var(--ios-color-red)", fontSize: "var(--ios-fs-caption)" }}>
+                              <p style={{ color: "var(--color-danger)", fontSize: "var(--hig-fs-footnote)" }}>
                                 ⚠️ WhatsApp Server Offline. Fitur siaran dinonaktifkan.
                               </p>
                             )}
@@ -2268,13 +2384,13 @@ export default function App() {
 
                         {/* Log Retention & Cleanup Card */}
                         {hasPermission('kelola_pengaturan_sistem') && (
-                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-12)" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)" }}>
-                              <HistoryOutlinedIcon style={{ color: "var(--ios-color-orange)", fontSize: "1.4rem" }} />
-                              <h3 style={{ fontSize: "var(--ios-fs-title-3)", fontWeight: 600 }}>Manajemen Retensi Log</h3>
+                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+                              <HistoryOutlinedIcon style={{ color: "var(--color-warning)", fontSize: "1.4rem" }} />
+                              <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Manajemen Retensi Log</h3>
                             </div>
 
-                            <div style={{ background: "var(--ios-color-bg-primary)", padding: "10px 12px", borderRadius: "8px", border: "0.5px solid var(--ios-color-separator)", fontSize: "var(--ios-fs-footnote)", color: "var(--ios-color-text-secondary)" }}>
+                            <div style={{ background: "var(--color-grouped-bg)", padding: "var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>
                               Konfigurasi pembersihan log aktivitas lokal dan Task Queue di Google Sheets demi optimasi performa.
                             </div>
 
@@ -2283,16 +2399,16 @@ export default function App() {
                                 <IOSSwitch checked={autoCleanupActive} onChange={handleToggleAutoCleanup} ariaLabel="Toggle pembersihan otomatis" />
                               }>
                                 <div style={{ display: "flex", flexDirection: "column" }}>
-                                  <span style={{ fontSize: "var(--ios-fs-body)", fontWeight: 600, color: "var(--ios-color-text-primary)" }}>Pembersihan Otomatis</span>
-                                  <span style={{ fontSize: "var(--ios-fs-caption)", color: "var(--ios-color-text-secondary)" }}>Hapus data lama secara berkala</span>
+                                  <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--color-text-primary)" }}>Pembersihan Otomatis</span>
+                                  <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>Hapus data lama secara berkala</span>
                                 </div>
                               </IOSListRow>
                             </IOSList>
 
                             {autoCleanupActive && (
-                              <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-12)" }}>
-                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                                  <label style={{ fontSize: "var(--ios-fs-caption)", fontWeight: "600", color: "var(--ios-color-text-secondary)" }}>Retensi Log Aktivitas</label>
+                              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Retensi Log Aktivitas</label>
                                   <select 
                                     value={logRetentionDays} 
                                     onChange={(e) => handleLogRetentionChange(Number(e.target.value))}
@@ -2306,8 +2422,8 @@ export default function App() {
                                   </select>
                                 </div>
 
-                                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-                                  <label style={{ fontSize: "var(--ios-fs-caption)", fontWeight: "600", color: "var(--ios-color-text-secondary)" }}>Retensi Task Queue</label>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Retensi Task Queue</label>
                                   <select 
                                     value={queueRetentionDays} 
                                     onChange={(e) => handleQueueRetentionChange(Number(e.target.value))}
@@ -2342,80 +2458,116 @@ export default function App() {
             {/* ═══ TAB: PERMISSIONS (Only SUPERADMIN) ═══ */}
             {activeTab === "permissions" && user?.role === "SUPERADMIN" && (
               <div className="scroll-inertia animate-slide-up" style={{ flex: 1 }}>
-                <div className="main-content-scrollable">
-                  <div style={{ fontSize: "var(--ios-fs-footnote)", color: "var(--ios-color-text-secondary)", marginTop: "var(--ios-space-4)", marginBottom: "var(--ios-space-16)" }}>
+                <div className="main-content-scrollable" style={{ paddingLeft: "max(var(--sp-20), env(safe-area-inset-left))", paddingRight: "max(var(--sp-20), env(safe-area-inset-right))" }}>
+                  <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "var(--space-4)", marginBottom: "var(--space-16)" }}>
                     Atur hak akses ADMIN dan USER.
                   </div>
                   
                   <IOSCard style={{ padding: 0, overflow: "hidden" }}>
-                    <div style={{ overflowX: "auto" }}>
-                      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "var(--ios-fs-body)", minWidth: "400px" }}>
-                        <thead>
-                          <tr style={{ background: "var(--ios-color-bg-secondary)", borderBottom: "0.5px solid var(--ios-color-separator)" }}>
-                            <th style={{ textAlign: "left", padding: "14px 16px", fontWeight: "600", color: "var(--ios-color-text-secondary)" }}>Fitur / Hak Akses</th>
-                            <th style={{ textAlign: "center", padding: "14px 16px", fontWeight: "600", color: "var(--ios-color-text-secondary)", width: "120px" }}>ADMIN</th>
-                            <th style={{ textAlign: "center", padding: "14px 16px", fontWeight: "600", color: "var(--ios-color-text-secondary)", width: "120px" }}>USER</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {permissionList.map((p) => (
-                            <tr key={p.key} style={{ borderBottom: "0.5px solid var(--ios-color-separator)" }}>
-                              <td style={{ padding: "14px 16px", fontWeight: "500", color: "var(--ios-color-text-primary)" }}>
-                                {p.label}
-                              </td>
-                              <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                                <IOSSwitch 
-                                  checked={!!permissions.ADMIN?.[p.key]} 
-                                  onChange={(e) => handlePermissionToggle("ADMIN", p.key, e.target.checked)} 
-                                  ariaLabel={`Toggle ${p.label} untuk ADMIN`}
-                                />
-                              </td>
-                              <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                                <IOSSwitch 
-                                  checked={!!permissions.USER?.[p.key]} 
-                                  onChange={(e) => handlePermissionToggle("USER", p.key, e.target.checked)} 
-                                  ariaLabel={`Toggle ${p.label} untuk USER`}
-                                />
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                    {/* Header Row */}
+                    <div className="permissions-header" style={{
+                      display: "grid",
+                      gridTemplateColumns: "1fr minmax(56px, 72px) minmax(56px, 72px)",
+                      gap: 0,
+                      background: "var(--color-surface)",
+                      borderBottom: "0.5px solid var(--color-separator)",
+                      padding: "var(--space-12) var(--space-16)"
+                    }}>
+                      <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", display: "flex", alignItems: "center" }}>
+                        Fitur / Hak Akses
+                      </span>
+                      <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        ADMIN
+                      </span>
+                      <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        USER
+                      </span>
                     </div>
+
+                    {/* Permission Rows */}
+                    {permissionList.map((p) => (
+                      <div key={p.key} style={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr minmax(56px, 72px) minmax(56px, 72px)",
+                        gap: 0,
+                        padding: "var(--space-12) var(--space-16)",
+                        borderBottom: "0.5px solid var(--color-separator)",
+                        alignItems: "center",
+                        minHeight: "48px"
+                      }}>
+                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: "500", color: "var(--color-text-primary)", paddingRight: "var(--space-8)" }}>
+                          {p.label}
+                        </span>
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                          <IOSSwitch 
+                            checked={!!permissions.ADMIN?.[p.key]} 
+                            onChange={(e) => handlePermissionToggle("ADMIN", p.key, e.target.checked)} 
+                            ariaLabel={`Toggle ${p.label} untuk ADMIN`}
+                          />
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                          <IOSSwitch 
+                            checked={!!permissions.USER?.[p.key]} 
+                            onChange={(e) => handlePermissionToggle("USER", p.key, e.target.checked)} 
+                            ariaLabel={`Toggle ${p.label} untuk USER`}
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </IOSCard>
                 </div>
               </div>
             )}
 
-            {/* General Footer */}
-            <footer style={{ textAlign: "center", color: "var(--ios-color-text-tertiary)", fontSize: "var(--ios-fs-caption)", padding: "var(--ios-space-24) 0", borderTop: "0.5px solid var(--ios-color-separator)" }}>
-              MA. Miftahul Ulum 2 © {new Date().getFullYear()}
-            </footer>
+            {/* Bottom Action Bar (Bulk Actions) */}
+            <div className={`ios-bottom-action-bar ${selectedTeachers.length > 0 && isSelectionMode ? "visible" : "hidden"}`}>
+              <button className="ios-bottom-btn" onClick={() => handleBulkChangeStatus("HADIR")}>
+                <span className="ios-bottom-btn-icon" style={{ color: "var(--color-secondary)" }}>●</span>
+                <span className="ios-bottom-btn-label">Hadir</span>
+              </button>
+              <button className="ios-bottom-btn" onClick={() => handleBulkChangeStatus("ALPHA")}>
+                <span className="ios-bottom-btn-icon" style={{ color: "var(--color-danger)" }}>●</span>
+                <span className="ios-bottom-btn-label">Alpa</span>
+              </button>
+              <button className="ios-bottom-btn" onClick={() => handleBulkChangeStatus("IZIN")}>
+                <span className="ios-bottom-btn-icon" style={{ color: "var(--color-warning)" }}>●</span>
+                <span className="ios-bottom-btn-label">Izin</span>
+              </button>
+              <button className="ios-bottom-btn" onClick={() => handleBulkChangeStatus("SAKIT")}>
+                <span className="ios-bottom-btn-icon" style={{ color: "var(--color-purple)" }}>●</span>
+                <span className="ios-bottom-btn-label">Sakit</span>
+              </button>
+              <button className="ios-bottom-btn" onClick={() => handleBulkChangeStatus("LIBUR")}>
+                <span className="ios-bottom-btn-icon" style={{ color: "var(--color-primary)" }}>●</span>
+                <span className="ios-bottom-btn-label">Libur</span>
+              </button>
+            </div>
+
           </main>
 
           {/* ═══ 5. IOS SHEET: Detail Guru ═══ */}
           <IOSSheet isOpen={!!teacherDetail} onClose={() => setTeacherDetail(null)}>
             {teacherDetail && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-16)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
                 {/* 1. Header Ringkas */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)", color: "var(--ios-color-text-secondary)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", color: "var(--color-text-secondary)" }}>
                     <PersonOutlineOutlinedIcon style={{ fontSize: "1.25rem" }} />
-                    <span style={{ fontSize: "var(--ios-fs-footnote)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Profil Guru</span>
+                    <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Profil Guru</span>
                   </div>
-                  <button onClick={() => setTeacherDetail(null)} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--ios-color-bg-tertiary)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none" }}>
-                    <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--ios-color-text-secondary)" }} />
+                  <button onClick={() => setTeacherDetail(null)} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--color-grouped-bg)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none" }}>
+                    <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }} />
                   </button>
                 </div>
 
                 {/* 2. Nama & Kontak Utama */}
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-16)", paddingBottom: "var(--ios-space-16)", borderBottom: "1px solid var(--ios-color-separator)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-16)", paddingBottom: "var(--space-16)", borderBottom: "1px solid var(--color-separator)" }}>
                   <IOSAvatar name={teacherDetail.name} />
                   <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                    <h2 style={{ fontSize: "var(--ios-fs-title-2)", fontWeight: 600, color: "var(--ios-color-text-primary)", letterSpacing: "-0.2px", lineHeight: "1.25", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <h2 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600, color: "var(--color-text-primary)", letterSpacing: "-0.2px", lineHeight: "1.25", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       {teacherDetail.name}
                     </h2>
-                    <span style={{ color: "var(--ios-color-text-secondary)", fontSize: "var(--ios-fs-footnote)", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                    <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
                       <PhoneAndroidOutlinedIcon style={{ fontSize: "0.9rem" }} /> {teacherDetail.phone || "-"}
                     </span>
                   </div>
@@ -2424,7 +2576,7 @@ export default function App() {
                 {/* Optional Attendance Segmented Input */}
                 {teacherDetail.row && (
                   <IOSSection title={`Input Absensi Jam ${selectedJam}`}>
-                    <div style={{ width: "100%", marginTop: "var(--ios-space-4)" }}>
+                    <div style={{ width: "100%", marginTop: "var(--space-4)" }}>
                       <IOSSegmentedControl
                         segments={statusActionsList.map(s => ({ value: s.key, label: s.label, cls: s.cls }))}
                         selectedValue={teacherDetail.row.currentStatus}
@@ -2445,7 +2597,7 @@ export default function App() {
 
                 {/* 3. Ringkasan Kehadiran (Stat Chips) */}
                 <IOSSection title="Ringkasan Kehadiran Bulan Ini">
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "var(--ios-space-8)", marginTop: "var(--ios-space-4)" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "var(--space-8)", marginTop: "var(--space-4)" }}>
                     {[
                       { l: "Hadir", v: teacherDetail.stats.hadir, c: "hadir", key: "green" },
                       { l: "Izin", v: teacherDetail.stats.izin, c: "izin", key: "yellow" },
@@ -2453,17 +2605,17 @@ export default function App() {
                       { l: "Libur", v: teacherDetail.stats.libur, c: "libur", key: "purple" },
                       { l: "Alpa", v: teacherDetail.stats.alpha, c: "alpha", key: "red" }
                     ].map(s => (
-                      <div key={s.c} style={{ background: `var(--ios-color-${s.key}-tint)`, border: "1px solid var(--ios-color-separator)", borderRadius: "var(--ios-radius-inner)", padding: "10px 4px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                        <span style={{ fontSize: "10px", fontWeight: "600", color: "var(--ios-color-text-secondary)", marginBottom: "4px" }}>{s.l}</span>
-                        <span className={`ios-badge ios-badge-${s.c}`} style={{ fontSize: "var(--ios-fs-subheadline)", padding: "2px 6px" }}>{s.v}</span>
+                      <div key={s.c} style={{ background: `var(--color--tint)`, border: "1px solid var(--color-separator)", borderRadius: "var(--radius-small)", padding: "10px 4px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--color-text-secondary)", marginBottom: "4px" }}>{s.l}</span>
+                        <span className={`ios-badge ios-badge-${s.c}`} style={{ fontSize: "var(--hig-fs-subheadline)", padding: "2px 6px" }}>{s.v}</span>
                       </div>
                     ))}
                   </div>
 
                   {/* 4. Informasi Kewajiban */}
-                  <div style={{ marginTop: "var(--ios-space-12)", padding: "10px var(--ios-space-16)", background: "var(--ios-color-bg-secondary)", border: "1px solid var(--ios-color-separator)", borderRadius: "var(--ios-radius-inner)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "var(--ios-fs-footnote)", color: "var(--ios-color-text-secondary)", fontWeight: 500 }}>Beban Kerja Wajib</span>
-                    <span style={{ fontSize: "var(--ios-fs-footnote)", color: "var(--ios-color-text-primary)", fontWeight: 600 }}>
+                  <div style={{ marginTop: "var(--space-12)", padding: "10px var(--space-16)", background: "var(--color-surface)", border: "1px solid var(--color-separator)", borderRadius: "var(--radius-small)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", fontWeight: 500 }}>Beban Kerja Wajib</span>
+                    <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-primary)", fontWeight: 600 }}>
                       {teacherDetail.stats.jtm_7_hari} JTM/Minggu · {teacherDetail.stats.jadwal_wajib} JTM/Bulan
                     </span>
                   </div>
@@ -2472,18 +2624,18 @@ export default function App() {
                 {/* 5. Log Terakhir */}
                 <IOSSection title="Log Kehadiran Terbaru (Maks. 10)">
                   {teacherDetail.logs.length === 0 ? (
-                    <div style={{ background: "var(--ios-color-bg-secondary)", border: "1px solid var(--ios-color-separator)", borderRadius: "var(--ios-radius-inner)", padding: "16px 0", textAlign: "center", color: "var(--ios-color-text-secondary)", fontSize: "var(--ios-fs-footnote)" }}>
+                    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-separator)", borderRadius: "var(--radius-small)", padding: "16px 0", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)" }}>
                       Belum ada log absensi tercatat.
                     </div>
                   ) : (
-                    <div className="ios-list scroll-inertia" style={{ maxHeight: "180px", overflowY: "auto", border: "1px solid var(--ios-color-separator)" }}>
+                    <div className="ios-list scroll-inertia" style={{ maxHeight: "180px", overflowY: "auto", border: "1px solid var(--color-separator)" }}>
                       {teacherDetail.logs.map((log, i) => (
                         <IOSListRow key={i} rightContent={<IOSBadge status={(log.status || "").toUpperCase()} />}>
                           <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <span style={{ color: "var(--ios-color-text-primary)", fontSize: "var(--ios-fs-footnote)", fontWeight: 600 }}>
-                              {log.tanggal} <span style={{ color: "var(--ios-color-text-secondary)", fontWeight: 400 }}>({capitalize(log.hari)})</span>
+                            <span style={{ color: "var(--color-text-primary)", fontSize: "var(--hig-fs-footnote)", fontWeight: 600 }}>
+                              {log.tanggal} <span style={{ color: "var(--color-text-secondary)", fontWeight: 400 }}>({capitalize(log.hari)})</span>
                             </span>
-                            <span style={{ color: "var(--ios-color-text-secondary)", fontSize: "var(--ios-fs-caption)" }}>
+                            <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)" }}>
                               Jam {log.jam} · Kelas {log.kelas || "-"} · {log.mapel || "-"}
                             </span>
                           </div>
@@ -2545,38 +2697,38 @@ export default function App() {
             setNewPasswordChange("");
             setConfirmPasswordChange("");
           }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-16)" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)", color: "var(--ios-color-text-secondary)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", color: "var(--color-text-secondary)" }}>
                   <KeyOutlinedIcon style={{ fontSize: "1.25rem" }} />
-                  <span style={{ fontSize: "var(--ios-fs-footnote)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ubah Kata Sandi</span>
+                  <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ubah Kata Sandi</span>
                 </div>
                 <button onClick={() => {
                   setShowChangePasswordModal(false);
                   setOldPasswordChange("");
                   setNewPasswordChange("");
                   setConfirmPasswordChange("");
-                }} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--ios-color-bg-tertiary)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none" }}>
-                  <CloseOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--ios-color-text-secondary)" }} />
+                }} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--color-grouped-bg)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none" }}>
+                  <CloseOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--color-text-secondary)" }} />
                 </button>
               </div>
 
-              <form onSubmit={handleConfirmChangePassword} style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-16)" }}>
+              <form onSubmit={handleConfirmChangePassword} style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
                 <div className="ios-input-wrapper">
-                  <label style={{ fontSize: "var(--ios-fs-caption)", fontWeight: "600", color: "var(--ios-color-text-secondary)" }}>Kata Sandi Lama</label>
+                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Kata Sandi Lama</label>
                   <input type="password" value={oldPasswordChange} onChange={(e) => setOldPasswordChange(e.target.value)} required placeholder="••••••••"
                     className="ios-input" />
                 </div>
                 
                 <div className="ios-input-wrapper">
-                  <label style={{ fontSize: "var(--ios-fs-caption)", fontWeight: "600", color: "var(--ios-color-text-secondary)" }}>Kata Sandi Baru</label>
+                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Kata Sandi Baru</label>
                   <input type="password" value={newPasswordChange} onChange={(e) => setNewPasswordChange(e.target.value)} required placeholder="Minimal 6 karakter"
                     className="ios-input" />
                 </div>
 
                 <div className="ios-input-wrapper">
-                  <label style={{ fontSize: "var(--ios-fs-caption)", fontWeight: "600", color: "var(--ios-color-text-secondary)" }}>Konfirmasi Kata Sandi Baru</label>
+                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Konfirmasi Kata Sandi Baru</label>
                   <input type="password" value={confirmPasswordChange} onChange={(e) => setConfirmPasswordChange(e.target.value)} required placeholder="Ulangi kata sandi baru"
                     className="ios-input" />
                 </div>
@@ -2596,7 +2748,7 @@ export default function App() {
             <div style={{ 
               display: "flex", 
               flexDirection: "column", 
-              gap: "var(--ios-space-16)", 
+              gap: "var(--space-16)", 
               width: "100%", 
               boxSizing: "border-box",
               flex: 1,
@@ -2606,19 +2758,19 @@ export default function App() {
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, flex: 1, paddingRight: "8px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)", color: "var(--ios-color-text-primary)" }}>
-                    <ManageAccountsOutlinedIcon style={{ fontSize: "1.5rem", color: "var(--ios-color-green)", flexShrink: 0 }} />
-                    <span style={{ fontSize: "var(--ios-fs-title-2)", fontWeight: 700, letterSpacing: "-0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Manajemen Guru</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", color: "var(--color-text-primary)" }}>
+                    <ManageAccountsOutlinedIcon style={{ fontSize: "1.5rem", color: "var(--color-secondary)", flexShrink: 0 }} />
+                    <span style={{ fontSize: "var(--hig-fs-title)", fontWeight: 700, letterSpacing: "-0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Manajemen Guru</span>
                   </div>
-                  <span style={{ fontSize: "var(--ios-fs-footnote)", color: "var(--ios-color-text-secondary)", marginTop: "2px" }}>
+                  <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "2px" }}>
                     Cari kontak guru dan reset kata sandi login guru pengajar.
                   </span>
                 </div>
                 <button onClick={() => {
                   setShowManageTeacherModal(false);
                   setSearchTeacherQuery("");
-                }} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--ios-color-bg-tertiary)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none", flexShrink: 0 }}>
-                  <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--ios-color-text-secondary)" }} />
+                }} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--color-grouped-bg)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none", flexShrink: 0 }}>
+                  <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }} />
                 </button>
               </div>
 
@@ -2626,15 +2778,15 @@ export default function App() {
               <div style={{ 
                 display: "flex", 
                 alignItems: "center", 
-                background: "var(--ios-color-bg-tertiary)", 
-                borderRadius: "10px", 
-                padding: "8px 12px", 
-                gap: "8px",
-                border: "0.5px solid var(--ios-color-separator)",
+                background: "var(--color-grouped-bg)", 
+                borderRadius: "var(--radius-medium)", 
+                padding: "var(--space-8) var(--space-12)", 
+                gap: "var(--space-8)",
+                border: "0.5px solid var(--color-separator)",
                 width: "100%",
                 boxSizing: "border-box"
               }}>
-                <SearchOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--ios-color-text-secondary)", flexShrink: 0 }} />
+                <SearchOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--color-text-secondary)", flexShrink: 0 }} />
                 <input 
                   type="text" 
                   placeholder="Cari nama atau nomor WhatsApp..." 
@@ -2644,15 +2796,15 @@ export default function App() {
                     border: "none", 
                     background: "none", 
                     outline: "none", 
-                    fontSize: "var(--ios-fs-body)", 
-                    color: "var(--ios-color-text-primary)",
+                    fontSize: "var(--hig-fs-body)", 
+                    color: "var(--color-text-primary)",
                     width: "100%",
                     padding: 0
                   }} 
                 />
               </div>
 
-              <div className="ios-list scroll-inertia" style={{ flex: 1, minHeight: "200px", overflowY: "auto", overflowX: "hidden", border: "0.5px solid var(--ios-color-separator)", borderRadius: "8px", boxSizing: "border-box", width: "100%" }}>
+              <div className="ios-list scroll-inertia" style={{ flex: 1, minHeight: "200px", overflowY: "auto", overflowX: "hidden", border: "0.5px solid var(--color-separator)", borderRadius: "var(--radius-medium)", boxSizing: "border-box", width: "100%" }}>
                 {(() => {
                   const filtered = contacts.filter(c => {
                     const name = (c.nama_guru || c.nama || "").toLowerCase();
@@ -2663,7 +2815,7 @@ export default function App() {
 
                   if (filtered.length === 0) {
                     return (
-                      <div style={{ padding: "20px", fontStyle: "italic", textAlign: "center", color: "var(--ios-color-text-secondary)", fontSize: "var(--ios-fs-footnote)", width: "100%", boxSizing: "border-box" }}>
+                      <div style={{ padding: "20px", fontStyle: "italic", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", width: "100%", boxSizing: "border-box" }}>
                         {searchTeacherQuery ? "Guru tidak ditemukan" : "Memuat data kontak..."}
                       </div>
                     );
@@ -2674,17 +2826,17 @@ export default function App() {
                       <IOSButton 
                         onClick={() => { setTeacherToReset(t); setShowResetConfirm(true); }} 
                         variant="secondary" 
-                        style={{ padding: "4px 12px", fontSize: "11px", height: "26px", borderRadius: "6px", flexShrink: 0 }}
+                        style={{ padding: "4px 12px", fontSize: "var(--hig-fs-badge)", height: "26px", borderRadius: "var(--radius-small)", flexShrink: 0 }}
                         ariaLabel={`Reset sandi ${t.nama_guru || t.nama}`}
                       >
                         <KeyOutlinedIcon style={{ fontSize: "0.85rem", marginRight: "4px" }} /> Reset
                       </IOSButton>
                     }>
-                      <div style={{ display: "flex", alignItems: "center", gap: "10px", width: "100%", boxSizing: "border-box", minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", width: "100%", boxSizing: "border-box", minWidth: 0 }}>
                         <IOSAvatar name={t.nama_guru || t.nama} />
                         <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-                          <span style={{ fontWeight: "600", color: "var(--ios-color-text-primary)", fontSize: "14px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.nama_guru || t.nama}</span>
-                          <span style={{ fontSize: "11px", color: "var(--ios-color-text-secondary)" }}>{t.no_wa || t.nomor_wa || "-"}</span>
+                          <span style={{ fontWeight: "600", color: "var(--color-text-primary)", fontSize: "var(--hig-fs-subheadline)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.nama_guru || t.nama}</span>
+                          <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)" }}>{t.no_wa || t.nomor_wa || "-"}</span>
                         </div>
                       </div>
                     </IOSListRow>
@@ -2696,33 +2848,33 @@ export default function App() {
 
           {/* ═══ 10. IOS SHEET: Profil & Aksi Pengguna (Mobile Only) ═══ */}
           <IOSSheet isOpen={showMobileProfileSheet} onClose={() => setShowMobileProfileSheet(false)}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-16)" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-8)", color: "var(--ios-color-text-secondary)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", color: "var(--color-text-secondary)" }}>
                   <PersonOutlineOutlinedIcon style={{ fontSize: "1.25rem" }} />
-                  <span style={{ fontSize: "var(--ios-fs-footnote)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Profil Saya</span>
+                  <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Profil Saya</span>
                 </div>
-                <button onClick={() => setShowMobileProfileSheet(false)} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--ios-color-bg-tertiary)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none" }}>
-                  <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--ios-color-text-secondary)" }} />
+                <button onClick={() => setShowMobileProfileSheet(false)} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--color-grouped-bg)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none" }}>
+                  <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }} />
                 </button>
               </div>
 
               {/* Profile Details */}
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--ios-space-16)", paddingBottom: "var(--ios-space-16)", borderBottom: "1px solid var(--ios-color-separator)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-16)", paddingBottom: "var(--space-16)", borderBottom: "1px solid var(--color-separator)" }}>
                 <IOSAvatar name={user?.name} />
                 <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                  <h2 style={{ fontSize: "var(--ios-fs-title-2)", fontWeight: 600, color: "var(--ios-color-text-primary)", letterSpacing: "-0.2px", lineHeight: "1.25" }}>
+                  <h2 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600, color: "var(--color-text-primary)", letterSpacing: "-0.2px", lineHeight: "1.25" }}>
                     {user?.name}
                   </h2>
-                  <span style={{ color: "var(--ios-color-text-secondary)", fontSize: "var(--ios-fs-footnote)", display: "flex", alignItems: "center", gap: "4px", marginTop: "2px" }}>
+                  <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
                     {user?.phone} · <strong style={{ textTransform: "uppercase" }}>{user?.role || "USER"}</strong>
                   </span>
                 </div>
               </div>
 
               {/* Actions */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--ios-space-12)", marginTop: "var(--ios-space-8)" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", marginTop: "var(--space-8)" }}>
                 {hasPermission("ubah_password_sendiri") && (
                   <IOSButton 
                     onClick={() => {

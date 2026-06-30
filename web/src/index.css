@@ -125,6 +125,72 @@
   --r-xl:   20px;
   --r-pill: 9999px;
 
+  /* ─── Standard HIG Spacing Tokens ─── */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-56: 56px;
+  --space-64: 64px;
+  --space-80: 80px;
+  --space-96: 96px;
+
+  /* ─── Standard HIG Radius Tokens ─── */
+  --radius-none: 0px;
+  --radius-small: 4px;
+  --radius-medium: 8px;
+  --radius-large: 12px;
+  --radius-xl: 16px;
+  --radius-xxl: 20px;
+  --radius-full: 9999px;
+
+  /* ─── Standard HIG Semantic Color Tokens ─── */
+  --color-primary: #007AFF;
+  --color-primary-pressed: #0055CC;
+  --color-primary-disabled: #8DC4FF;
+  --color-secondary: #34C759;
+  --color-danger: #FF3B30;
+  --color-warning: #FF9500;
+  --color-purple: #AF52DE;
+  --color-info: #007AFF;
+  --color-background: #FFFFFF;
+  --color-grouped-bg: #F2F2F7;
+  --color-surface: #FFFFFF;
+  --color-elevated: #FFFFFF;
+  --color-border: #E5E5EA;
+  --color-separator: #E5E5EA;
+  --color-text-primary: #1C1C1E;
+  --color-text-secondary: #6C6C70;
+  --color-text-tertiary: #8E8E93;
+  --color-text-placeholder: #AEAEB2;
+  --color-selection: #007AFF;
+  --color-disabled: #E5E5EA;
+
+  /* ─── HIG Typography Scale (rem/px equivalents) ─── */
+  --hig-fs-large-title: 34px;
+  --hig-fs-title: 28px;
+  --hig-fs-headline: 20px;
+  --hig-fs-body: 17px;
+  --hig-fs-callout: 16px;
+  --hig-fs-subheadline: 15px;
+  --hig-fs-footnote: 13px;
+  --hig-fs-caption: 12px;
+  --hig-fs-button: 17px;
+  --hig-fs-label: 13px;
+  --hig-fs-statistic: 28px;
+  --hig-fs-badge: 11px;
+  --hig-fs-helper: 12px;
+  --hig-fs-nav-title: 17px;
+  --hig-fs-section-header: 13px;
+
+  --ios-radius-inner: var(--radius-medium);
+
   /* ─── Elevation / Shadows (No shadow on UI Chrome, except product gallery) ─── */
   --shadow-card:   none; /* Pure hairline card border, no shadow */
   --shadow-sheet:  0 -10px 30px rgba(0,0,0,0.05);
@@ -149,91 +215,7 @@
   --z-alert: 1100;
   --z-toast: 2000;
 
-  /* ─── Legacy aliases (keep backward compat with App.jsx inline styles) ─── */
-  --ios-color-bg-primary:        var(--bg-primary);
-  --ios-color-bg-secondary:      var(--bg-secondary);
-  --ios-color-bg-tertiary:       var(--bg-tertiary);
-  --ios-color-bg-quaternary:     var(--bg-quaternary);
-  --ios-color-text-primary:      var(--label-primary);
-  --ios-color-text-secondary:    var(--label-secondary);
-  --ios-color-text-tertiary:     var(--label-tertiary);
-  --ios-color-separator:         var(--separator);
-  --ios-color-separator-opaque:  var(--separator-opaque);
-  --ios-color-blue:              var(--blue);
-  --ios-color-blue-hover:        var(--blue-dark);
-  --ios-color-blue-tint:         var(--blue-tint);
-  --ios-color-green:             var(--green);
-  --ios-color-green-tint:        var(--green-tint);
-  --ios-color-yellow:            var(--yellow);
-  --ios-color-yellow-tint:       var(--yellow-tint);
-  --ios-color-orange:            var(--orange);
-  --ios-color-orange-tint:       var(--orange-tint);
-  --ios-color-red:               var(--red);
-  --ios-color-red-tint:          var(--red-tint);
-  --ios-color-purple:            var(--purple);
-  --ios-color-purple-tint:       var(--purple-tint);
-  --ios-color-bar-bg:            var(--bar-bg);
-  --ios-color-overlay-bg:        var(--bg-overlay);
-  --ios-color-alert-bg:          var(--alert-bg);
-  --ios-color-alert-btn-active:  var(--alert-btn-active);
-  --ios-color-focus-ring:        var(--focus-ring);
-  --ios-select-chevron:          var(--select-chevron);
-  --ios-font-family:             var(--font);
-  --ios-fs-large-title:  var(--fs-large-title);
-  --ios-lh-large-title:  var(--lh-large-title);
-  --ios-fs-title-1:      var(--fs-title-1);
-  --ios-lh-title-1:      var(--lh-title-1);
-  --ios-fs-title-2:      var(--fs-title-2);
-  --ios-lh-title-2:      var(--lh-title-2);
-  --ios-fs-title-3:      var(--fs-title-3);
-  --ios-lh-title-3:      var(--lh-title-3);
-  --ios-fs-headline:     var(--fs-headline);
-  --ios-lh-headline:     var(--lh-headline);
-  --ios-fs-body:         var(--fs-body);
-  --ios-lh-body:         var(--lh-body);
-  --ios-fs-callout:      var(--fs-callout);
-  --ios-lh-callout:      var(--lh-callout);
-  --ios-fs-subheadline:  var(--fs-subheadline);
-  --ios-lh-subheadline:  var(--lh-subheadline);
-  --ios-fs-footnote:     var(--fs-footnote);
-  --ios-lh-footnote:     var(--lh-footnote);
-  --ios-fs-caption:      var(--fs-caption);
-  --ios-lh-caption:      var(--lh-caption);
-  --ios-fs-caption-2:    var(--fs-caption-2);
-  --ios-lh-caption-2:    var(--lh-caption-2);
-  --ios-ls-body:         var(--ls-body);
-  --ios-ls-large-title:  var(--ls-large-title);
-  --ios-ls-title-2:      var(--ls-title-2);
-  --ios-ls-headline:     var(--ls-headline);
-  --ios-space-4:   var(--sp-4);
-  --ios-space-8:   var(--sp-8);
-  --ios-space-12:  var(--sp-12);
-  --ios-space-16:  var(--sp-16);
-  --ios-space-20:  var(--sp-20);
-  --ios-space-24:  var(--sp-24);
-  --ios-space-32:  var(--sp-32);
-  --ios-space-40:  var(--sp-40);
-  --ios-space-48:  var(--sp-48);
-  --ios-radius-card:    var(--r-lg);
-  --ios-radius-control: var(--r-md);
-  --ios-radius-inner:   var(--r-sm);
-  --ios-radius-pill:    var(--r-pill);
-  --ios-shadow-card:    var(--shadow-card);
-  --ios-shadow-menu:    var(--shadow-menu);
-  --ios-shadow-sheet:   var(--shadow-sheet);
-  --ios-shadow-alert:   var(--shadow-alert);
-  --ios-motion-spring:  var(--ease-spring);
-  --ios-motion-fast:    var(--dur-sm);
-  --ios-motion-normal:  var(--dur-md);
-  --ios-motion-slow:    var(--dur-lg);
-  --ios-z-nav-bar:  var(--z-nav);
-  --ios-z-tab-bar:  var(--z-tab);
-  --ios-z-sheet:    var(--z-sheet);
-  --ios-z-alert:    var(--z-alert);
-  --ios-z-toast:    var(--z-toast);
-  --ios-touch-target:   var(--sp-touch-target);
-  --ios-control-h:      var(--control-h);
-  /* ─── Sidebar width token (used by sidebar + main-content collapse math) ─── */
+    /* ─── Sidebar width token (used by sidebar + main-content collapse math) ─── */
   --sidebar-w: 264px;
 }
 
@@ -289,6 +271,27 @@
     --shadow-alert:  0 15px 45px rgba(0,0,0,0.40);
 
     --select-chevron: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+    /* ─── Standard HIG Semantic Color Tokens (Dark) ─── */
+    --color-primary: #0A84FF;
+    --color-primary-pressed: #0066DD;
+    --color-primary-disabled: #4A6B8C;
+    --color-secondary: #30B350;
+    --color-danger: #FF453A;
+    --color-warning: #FF9F0A;
+    --color-info: #0A84FF;
+    --color-background: #000000;
+    --color-grouped-bg: #1C1C1E;
+    --color-surface: #1C1C1E;
+    --color-elevated: #2C2C2E;
+    --color-border: #38383A;
+    --color-separator: #38383A;
+    --color-text-primary: #FFFFFF;
+    --color-text-secondary: #AEAEB2;
+    --color-text-tertiary: #8E8E93;
+    --color-text-placeholder: #636366;
+    --color-selection: #0A84FF;
+    --color-disabled: #38383A;
   }
 }
 
@@ -830,16 +833,16 @@ textarea.ios-input {
 .apple-date-trigger {
   display: inline-flex;
   align-items: center;
-  gap: var(--sp-4);
+  gap: var(--space-4);
   background: var(--bg-tertiary);
   border: none;
-  padding: 6px 12px;
-  border-radius: var(--r-sm);
-  color: var(--blue);
-  font-size: var(--fs-subheadline);
+  padding: 10px 16px;
+  border-radius: var(--radius-medium);
+  color: var(--color-primary);
+  font-size: var(--hig-fs-subheadline);
   font-weight: 500;
   cursor: pointer;
-  min-height: 36px;
+  min-height: 44px; /* HIG 44px minimum touch target */
   transition: background var(--dur-xs) var(--ease-out);
 }
 
@@ -848,7 +851,7 @@ textarea.ios-input {
 }
 
 .apple-date-chevron {
-  color: var(--label-tertiary);
+  color: var(--color-text-tertiary);
   font-size: 16px !important;
 }
 
@@ -1095,13 +1098,16 @@ textarea.ios-input {
 
 /* ─── Switch (iOS Toggle) ─── */
 .ios-switch {
-  display: inline-block;
-  width: 48px;
-  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   position: relative;
   cursor: pointer;
   user-select: none;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .ios-switch input {
@@ -1113,31 +1119,34 @@ textarea.ios-input {
 
 .ios-switch-slider {
   position: absolute;
-  inset: 0;
-  background: var(--bg-quaternary);
-  border-radius: var(--r-pill);
-  transition: background var(--dur-sm) var(--ease-out);
+  width: 42px;
+  height: 24px;
+  top: 10px;
+  left: 1px;
+  background: var(--color-disabled);
+  border-radius: 9999px;
+  transition: background 160ms ease-out;
 }
 
 .ios-switch-slider::before {
   content: '';
   position: absolute;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   left: 2px;
-  bottom: 2px;
+  top: 2px;
   background: #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
-  transition: transform var(--dur-md) var(--ease-spring);
+  border-radius: 9999px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 160ms ease-out;
 }
 
 .ios-switch input:checked + .ios-switch-slider {
-  background: var(--green);
+  background: var(--color-secondary);
 }
 
 .ios-switch input:checked + .ios-switch-slider::before {
-  transform: translateX(20px);
+  transform: translateX(18px);
 }
 
 /* ─── Badge ─── */
@@ -1289,6 +1298,7 @@ textarea.ios-input {
   border-bottom: none;
   outline: none;
   overflow: hidden;
+  overflow-x: hidden;
 }
 
 .ios-sheet-grabber {
@@ -1525,10 +1535,10 @@ tbody tr {
 /* ─── Segmented Control ─── */
 .ios-segmented-control {
   display: flex;
-  background: var(--bg-primary);
-  border-radius: var(--r-md);
+  background: var(--color-separator);
+  border-radius: var(--radius-medium);
   padding: 3px;
-  border: 1px solid var(--separator);
+  border: 1px solid var(--color-border);
   align-items: center;
   width: fit-content;
 }
@@ -1536,11 +1546,11 @@ tbody tr {
 .ios-segmented-segment {
   background: transparent;
   border: none;
-  border-radius: 8px;
-  padding: 8px var(--sp-16);
-  font-size: var(--fs-caption);
-  font-weight: 500;
-  color: var(--label-secondary);
+  border-radius: 6px;
+  padding: 6px var(--space-16);
+  font-size: var(--hig-fs-section-header);
+  font-weight: 600; /* Semibold as per HIG */
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: all var(--dur-xs) var(--ease-out);
   text-align: center;
@@ -1549,8 +1559,8 @@ tbody tr {
 }
 
 .ios-segmented-segment.selected {
-  background: var(--bg-secondary);
-  color: var(--blue) !important;
+  background: var(--color-background);
+  color: var(--color-primary) !important;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
 }
 
@@ -1562,11 +1572,11 @@ tbody tr {
 
 .ios-segmented-segment:active:not(.selected) { opacity: 0.65; }
 
-.ios-segmented-segment.selected.hadir  { color: var(--blue) !important; }
-.ios-segmented-segment.selected.izin   { color: var(--blue) !important; }
-.ios-segmented-segment.selected.sakit  { color: var(--blue) !important; }
-.ios-segmented-segment.selected.alpha  { color: var(--blue) !important; }
-.ios-segmented-segment.selected.libur  { color: var(--blue) !important; }
+.ios-segmented-segment.selected.hadir  { color: var(--color-primary) !important; }
+.ios-segmented-segment.selected.izin   { color: var(--color-primary) !important; }
+.ios-segmented-segment.selected.sakit  { color: var(--color-primary) !important; }
+.ios-segmented-segment.selected.alpha  { color: var(--color-primary) !important; }
+.ios-segmented-segment.selected.libur  { color: var(--color-primary) !important; }
 
 /* ─── iOS Context Menu ─── */
 .ios-menu {
@@ -1889,9 +1899,12 @@ tbody tr {
 /* ─── Absensi Grid ─── */
 .absensi-grid {
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr;
   gap: var(--sp-20);
   align-items: start;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 /* ─── Toolbars ─── */
@@ -2057,7 +2070,7 @@ tbody tr {
 @media (min-width: 1280px) {
   :root { --sidebar-w: 280px; }
   .sidebar { width: var(--sidebar-w); }
-  .absensi-grid { grid-template-columns: 1fr 320px; }
+  .absensi-grid { grid-template-columns: 1fr; }
 }
 
 /* ─── Sidebar Toggle Button (desktop-only ghost button) ─── */
@@ -2086,4 +2099,367 @@ tbody tr {
 .sidebar-toggle-btn:active {
   background: var(--bg-tertiary);
   opacity: 0.7;
+}
+
+/* ─── Responsive Android & HIG Layout Additions ─── */
+.teacher-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-8);
+  margin-top: var(--space-8);
+}
+
+.teacher-stat-chip {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  padding: var(--space-8) var(--space-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform var(--dur-xs) ease;
+}
+
+.teacher-stat-chip-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
+
+@media (max-width: 400px) {
+  .teacher-stat-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+  .apple-calendar-overlay {
+    padding: var(--space-8) !important;
+  }
+  .apple-calendar-sheet {
+    padding: var(--space-8) var(--space-12) var(--space-12) !important;
+    border-radius: var(--radius-xl) !important;
+  }
+  .apple-calendar-day-btn {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: var(--fs-footnote) !important;
+  }
+}
+
+@media (max-width: 320px) {
+  .teacher-stat-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ─── HIG System Health Metric Cards ─── */
+.hig-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-12);
+  margin-bottom: var(--space-16);
+}
+
+.hig-metric-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-large);
+  padding: var(--space-12) var(--space-16);
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  transition: transform var(--dur-xs) ease;
+}
+
+.hig-metric-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-medium);
+  flex-shrink: 0;
+}
+
+.hig-metric-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.hig-metric-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hig-metric-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin-top: var(--space-2);
+}
+
+.hig-metric-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.hig-metric-value {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Absensi Ringkasan Status Grid ─── */
+.absensi-summary-grid {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-8);
+  margin-top: var(--space-12);
+}
+
+.absensi-summary-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--separator);
+  border-radius: 18px;
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  flex: 1;
+  min-width: 0;
+  transition: transform 150ms var(--ease-out), background 150ms var(--ease-out), border-color 150ms var(--ease-out);
+}
+
+.absensi-summary-card:active {
+  transform: scale(0.98);
+}
+
+.absensi-summary-card.active-hadir {
+  border-color: var(--color-secondary) !important;
+}
+.absensi-summary-card.active-alpa {
+  border-color: var(--color-danger) !important;
+}
+.absensi-summary-card.active-izin {
+  border-color: var(--color-warning) !important;
+}
+.absensi-summary-card.active-sakit {
+  border-color: var(--color-purple) !important;
+}
+.absensi-summary-card.active-libur {
+  border-color: var(--color-primary) !important;
+}
+
+.absensi-summary-count {
+  font-size: clamp(18px, 4vw, 24px);
+  font-weight: 800;
+  color: var(--color-text-primary);
+  line-height: 1.1;
+  margin-bottom: 3px;
+}
+
+.absensi-summary-label {
+  font-size: clamp(9px, 2vw, 11px);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* ─── Session Config Card ─── */
+.session-config-card {
+  padding: var(--space-12) var(--space-16);
+}
+
+.session-config-wrapper {
+  display: flex;
+  flex-direction: column;
+}
+
+.session-config-tanggal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+
+.session-config-tanggal-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.session-config-date {
+  font-size: var(--hig-fs-title-3);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.session-config-day {
+  font-size: var(--hig-fs-footnote);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.session-config-divider-line {
+  border-top: 0.5px solid var(--color-separator);
+  margin: var(--space-12) 0;
+}
+
+.session-config-sesi {
+  display: flex;
+  flex-direction: column;
+}
+
+.session-config-sesi-label {
+  font-size: var(--hig-fs-caption-1);
+  color: var(--color-text-secondary);
+  font-weight: 500;
+  margin-bottom: var(--space-8);
+}
+
+.session-config-sesi-control {
+  overflow-x: auto;
+}
+
+/* Desktop layout: >= 1024px */
+@media (min-width: 1024px) {
+  .session-config-card {
+    padding: 20px !important;
+  }
+
+  .session-config-wrapper {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--sp-24);
+  }
+
+  .session-config-tanggal {
+    flex: 1;
+    justify-content: flex-start;
+    gap: var(--sp-16);
+  }
+
+  .session-config-divider-line {
+    border-top: none;
+    border-left: 0.5px solid var(--color-separator);
+    height: 36px;
+    margin: 0;
+  }
+
+  .session-config-sesi {
+    flex: 1;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: var(--sp-16);
+  }
+
+  .session-config-sesi-label {
+    margin-bottom: 0;
+    white-space: nowrap;
+  }
+
+  .session-config-sesi-control {
+    min-width: 240px;
+  }
+
+  .main-content-scrollable {
+    padding: var(--space-24) var(--space-32) var(--space-32) !important;
+    gap: var(--space-20) !important;
+  }
+
+  .ios-card {
+    padding: 20px !important;
+  }
+}
+
+/* ─── iOS Outline Button ─── */
+.ios-outline-btn {
+  border-radius: 9999px !important;
+}
+.ios-outline-btn:hover {
+  background: rgba(0, 122, 255, 0.08) !important;
+}
+
+/* ─── Bottom Action Bar (Toolbar iOS) ─── */
+.ios-bottom-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bar-bg);
+  backdrop-filter: saturate(180%) blur(24px);
+  -webkit-backdrop-filter: saturate(180%) blur(24px);
+  border-top: 1px solid var(--separator);
+  padding: var(--space-12) max(var(--space-16), env(safe-area-inset-right)) calc(var(--space-12) + env(safe-area-inset-bottom)) max(var(--space-16), env(safe-area-inset-left));
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: var(--z-toast);
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.12);
+  transition: transform 300ms var(--ease-spring);
+}
+
+.ios-bottom-action-bar.hidden {
+  transform: translateY(110%);
+}
+
+.ios-bottom-action-bar.visible {
+  transform: translateY(0);
+}
+
+.ios-bottom-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: var(--space-6) var(--space-12);
+  border-radius: var(--radius-medium);
+  transition: background 150ms var(--ease-out), transform 150ms var(--ease-out);
+  min-width: 54px;
+}
+
+.ios-bottom-btn:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ios-bottom-btn-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  margin-bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ios-bottom-btn-label {
+  font-size: var(--hig-fs-caption-2);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  text-transform: capitalize;
 }
