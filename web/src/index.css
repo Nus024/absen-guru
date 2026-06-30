@@ -2136,8 +2136,8 @@ tbody tr {
     padding: var(--space-8) !important;
   }
   .apple-calendar-sheet {
-    padding: var(--space-8) var(--space-12) var(--space-12) !important;
-    border-radius: var(--radius-xl) !important;
+
+
   }
   .apple-calendar-day-btn {
     width: 38px !important;
@@ -2459,4 +2459,216 @@ tbody tr {
   font-weight: 600;
   color: var(--color-text-primary);
   text-transform: capitalize;
+}
+
+/* ─── Focus Card Mode ─── */
+
+/* Container for the stacked card effect */
+.focus-stack-container {
+  position: relative;
+  width: 100%;
+  padding-bottom: 16px; /* Room for thin stacked edges */
+}
+
+/* Main card (front) */
+.focus-stack-main {
+  position: relative;
+  z-index: 3;
+}
+
+/* Focus Card itself */
+.focus-card {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-20) var(--space-16);
+  background: var(--color-surface);
+  border-radius: var(--radius-large);
+  border: 1px solid var(--color-separator);
+  gap: 0;
+}
+
+/* Header row: name-block left, date-link right */
+.focus-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.focus-card-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.focus-card-name {
+  font-size: var(--hig-fs-headline);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: var(--hig-lh-headline);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.focus-card-subtitle {
+  font-size: var(--hig-fs-footnote);
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.focus-card-date-link {
+  font-size: var(--hig-fs-subheadline);
+  color: var(--color-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 4px;
+  cursor: pointer;
+}
+
+.focus-card-chevron {
+  font-size: 1.1em;
+  margin-left: 2px;
+  opacity: 0.7;
+}
+
+/* Divider between header and action buttons */
+.focus-card-divider {
+  height: 0.5px;
+  background: var(--color-separator);
+  margin: var(--space-12) 0;
+}
+
+/* Action buttons row — minimalist: transparent bg, colored letter + border only */
+.focus-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-12);
+  padding-top: var(--space-4);
+}
+
+.focus-action-btn {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease-out;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.4);
+  flex: 0 0 auto;
+}
+
+.focus-action-btn:active {
+  transform: scale(0.9);
+}
+
+/* Active state — ONLY letter color + border color. NO fill background */
+.focus-action-btn.active {
+  background: transparent;
+  transform: scale(1.05);
+  box-shadow: none;
+}
+
+.focus-action-hadir.active  { color: var(--color-secondary); border-color: var(--color-secondary); }
+.focus-action-alpha.active  { color: var(--color-danger);    border-color: var(--color-danger); }
+.focus-action-izin.active   { color: var(--color-warning);   border-color: var(--color-warning); }
+.focus-action-sakit.active  { color: var(--color-purple);    border-color: var(--color-purple); }
+.focus-action-libur.active  { color: var(--color-primary);   border-color: var(--color-primary); }
+
+/* Stacked edge strips behind the main card — thin rounded bars */
+.focus-stack-edge {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 8px;
+  border-radius: 0 0 var(--radius-large) var(--radius-large);
+  background: var(--color-surface);
+  border: 1px solid var(--color-separator);
+  border-top: none;
+  pointer-events: none;
+}
+
+.focus-stack-edge-1 {
+  bottom: 6px;
+  width: calc(100% - 16px);
+  z-index: 2;
+  opacity: 0.5;
+}
+
+.focus-stack-edge-2 {
+  bottom: 0;
+  width: calc(100% - 32px);
+  z-index: 1;
+  opacity: 0.25;
+}
+
+/* ─── Finished message wrapper ─── */
+.focus-card-wrapper {
+  margin-bottom: var(--space-16);
+  width: 100%;
+}
+
+/* ─── Spring Animations ─── */
+@keyframes focusCardEnter {
+  0% {
+    transform: translateY(12px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-focus-card-enter {
+  animation: focusCardEnter 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes springSlideUp {
+  0% {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes springSlideDown {
+  0% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-spring-slide-up {
+  animation: springSlideUp 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+.animate-spring-slide-down {
+  animation: springSlideDown 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* ─── Gesture Support ─── */
+.top-panel-gesture-area {
+  touch-action: none; /* Lock page scroll while swiping on panel */
 }

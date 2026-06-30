@@ -359,18 +359,18 @@ export async function syncBulananSheet(bulanIndoOrDate, tahun = null) {
 
     // 4. Update values
     const lastRow = 3 + dataRows.length;
-    
+
     const headers1 = ["NO", "NAMA", "JTM 7 HARI", "JADWAL"];
     validDates.forEach(d => { headers1.push(d.label, "", ""); });
     headers1.push("HADIR", "IZIN", "SAKIT", "LIBUR", "ALPHA");
 
     const sumRow = ["", "TOTAL", `=SUM(C4:C${lastRow})`, `=SUM(D4:D${lastRow})`];
     for (let i = 0; i < validDates.length * 3; i++) {
-       sumRow.push("");
+      sumRow.push("");
     }
     for (let i = 0; i < 5; i++) {
-       const cLetter = colLetter(4 + validDates.length * 3 + i);
-       sumRow.push(`=SUM(${cLetter}4:${cLetter}${lastRow})`);
+      const cLetter = colLetter(4 + validDates.length * 3 + i);
+      sumRow.push(`=SUM(${cLetter}4:${cLetter}${lastRow})`);
     }
 
     const values = [
@@ -579,7 +579,7 @@ export async function syncBulananSheet(bulanIndoOrDate, tahun = null) {
         fields: "pixelSize"
       }
     });
-    
+
     // Dates columns width (make them smaller)
     const datesEndCol = 4 + validDates.length * 3;
     if (datesEndCol > 4) {
@@ -928,7 +928,7 @@ async function handleBulkStatus(msg, typeStatus, jam) {
       });
       processedNames.push(guru.nama_guru);
     }
-    
+
     await msg.reply(
       `✅ *SUKSES BULK ${targetStatus} JAM ${jam}*\n\n` +
       `Berhasil menandai ${targetStatus} untuk ${processedNames.length} guru:\n` +
@@ -1102,6 +1102,7 @@ const pengawasCadangan = [
   "6282245613520",
   "6285141061017",
   "6282228485343",
+  "6285230812051",
 ];
 const semuaPengawas = [pengawasUtama, ...pengawasCadangan];
 const nomorRekapOtomatis = [
@@ -1142,7 +1143,7 @@ async function updateSettingKeyValue(key, value) {
     });
     const rows = res.data.values || [];
     const rowIndex = rows.findIndex(row => String(row[0] || "").trim() === key);
-    
+
     if (rowIndex !== -1) {
       await clientSheets.spreadsheets.values.update({
         spreadsheetId: GOOGLE_SHEET_ID,
@@ -1334,7 +1335,7 @@ Wassalamu’alaikum Wr. Wb`;
         }
       }
     }
-    
+
     await msg.reply(`📋 *Rekap Absen (${tanggal})*\n\n${hasil.join("\n")}`);
   } catch (err) {
     console.error("Error Absen:", err);
@@ -1868,7 +1869,7 @@ setInterval(async () => {
       const part = await buatRekapPerJamText(tanggal, jam);
       teks += part + "\n\n";
     }
-    
+
     // Tambahkan pesan bantuan ekspor PDF/Excel
     teks += `_💡 Tulis *"Kirim rekap [sebut bulan]"* (contoh: Kirim rekap Juni) untuk menerima rekap bulanan dalam format Excel/PDF._`;
 
@@ -2277,7 +2278,7 @@ let isPollingTask = false;
 
 async function initTaskQueuePolling() {
   console.log("🔄 Automation Worker siap membaca Task_Queue...");
-  
+
   // Create sheet if not exist
   try {
     const client = await getSheetsClient();
@@ -2308,14 +2309,14 @@ async function initTaskQueuePolling() {
     try {
       const tasks = await ambilSheetRange("Task_Queue", "A:F");
       if (!tasks || tasks.length === 0) return;
-      
+
       const clientSheets = await getSheetsClient();
-      
+
       for (let i = 0; i < tasks.length; i++) {
         const task = tasks[i];
         if (String(task.status).toUpperCase() === 'PENDING') {
           const rowIndex = i + 2; // +1 header, +1 for 0-index
-          
+
           // Mark as PROCESSING
           await clientSheets.spreadsheets.values.update({
             spreadsheetId: GOOGLE_SHEET_ID,
@@ -2323,14 +2324,14 @@ async function initTaskQueuePolling() {
             valueInputOption: "USER_ENTERED",
             requestBody: { values: [["PROCESSING"]] }
           });
-          
+
           try {
             const tType = String(task.task_type).toUpperCase();
             if (tType === 'SEND_WHATSAPP') {
               const payload = JSON.parse(task.payload);
               const target = payload.target || payload.targetMode;
               const msg = payload.message;
-              
+
               if (target && msg) {
                 const mockMsg = createMockMsg("WORKER");
                 const mode = target.toLowerCase() === 'semua' ? 'SEMUA' : target.toUpperCase();
@@ -2372,7 +2373,7 @@ async function initTaskQueuePolling() {
                 await downloadDanKirimRekap(mockMsg, format, monthName, sheetId, year);
               }
             }
-            
+
             // Mark as DONE
             await clientSheets.spreadsheets.values.update({
               spreadsheetId: GOOGLE_SHEET_ID,
@@ -2381,7 +2382,7 @@ async function initTaskQueuePolling() {
               requestBody: { values: [["DONE", new Date().toISOString(), "Berhasil dieksekusi"]] }
             });
             console.log(`✅ Task ${task.id} (${tType}) selesai.`);
-            
+
           } catch (execErr) {
             console.error(`❌ Gagal mengeksekusi task ID: ${task.id}`, execErr.message);
             // Mark as FAILED

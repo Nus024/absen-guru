@@ -4,6 +4,7 @@ import * as scheduleApi from "./api/schedule.js";
 import * as attendanceApi from "./api/attendance.js";
 import * as reportApi from "./api/report.js";
 import * as settingsApi from "./api/settings.js";
+import { sortClasses } from "./utils/sorting.js";
 
 
 // MUI Icons (SF Symbols equivalent outlines)
@@ -635,6 +636,100 @@ export default function App() {
   const [selectedTeachers, setSelectedTeachers] = useState([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
+  // Focus Card Mode States
+  const [panelMode, setPanelMode] = useState("LIST");
+  const [currentTeacherIndex, setCurrentTeacherIndex] = useState(0);
+  const [isPortraitMobile, setIsPortraitMobile] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [showFinishedMessage, setShowFinishedMessage] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 768px)");
+    // pointer: coarse ensures it is a touch device (mobile)
+    const checkPortrait = () => setIsPortraitMobile(mql.matches && window.innerHeight > window.innerWidth && window.matchMedia("(pointer: coarse)").matches);
+    checkPortrait();
+    mql.addEventListener("change", checkPortrait);
+    window.addEventListener("resize", checkPortrait);
+    return () => {
+      mql.removeEventListener("change", checkPortrait);
+      window.removeEventListener("resize", checkPortrait);
+    };
+  }, []);
+
+  const [pointerStartPos, setPointerStartPos] = useState({ x: 0, y: 0, active: false });
+
+  const autoNextJam = () => {
+    const nextJam = parseInt(selectedJam) + 1;
+    if (nextJam > 3) {
+      // Selesai semua
+      setShowFinishedMessage(true);
+      setTimeout(() => {
+        setShowFinishedMessage(false);
+        setPanelMode("LIST");
+      }, 1000);
+    } else {
+      setSelectedJam(nextJam.toString());
+      setCurrentTeacherIndex(0);
+    }
+  };
+
+  const handlePointerDown = (e) => {
+    if (!isPortraitMobile || isAnimating) return;
+    setPointerStartPos({ x: e.clientX, y: e.clientY, active: true });
+    // Note: We don't preventDefault here because we use touch-action: none on the container
+  };
+
+  const handlePointerUp = (e) => {
+    if (!pointerStartPos.active || !isPortraitMobile || isAnimating) return;
+    
+    const pointerEndX = e.clientX;
+    const pointerEndY = e.clientY;
+    
+    const deltaX = pointerStartPos.x - pointerEndX;
+    const deltaY = pointerStartPos.y - pointerEndY;
+    const swipeThreshold = 70;
+
+    // Abaikan jika horizontal lebih dominan
+    if (Math.abs(deltaX) > Math.abs(deltaY)) {
+      setPointerStartPos({ x: 0, y: 0, active: false });
+      return;
+    }
+
+    const allTeachers = getTeachersForSelectedJam();
+    if (allTeachers.length === 0) {
+      setPointerStartPos({ x: 0, y: 0, active: false });
+      return;
+    }
+
+    if (deltaY > swipeThreshold) {
+      // Swipe Up
+      if (panelMode === "LIST") {
+        setPanelMode("FOCUS");
+        setCurrentTeacherIndex(0);
+      } else if (panelMode === "FOCUS") {
+        if (currentTeacherIndex < allTeachers.length - 1) {
+          setCurrentTeacherIndex(prev => prev + 1);
+        } else {
+          autoNextJam();
+        }
+      }
+    } else if (deltaY < -swipeThreshold) {
+      // Swipe Down
+      if (panelMode === "FOCUS") {
+        if (currentTeacherIndex > 0) {
+          setCurrentTeacherIndex(prev => prev - 1);
+        } else {
+          setPanelMode("LIST");
+        }
+      }
+    }
+    setPointerStartPos({ x: 0, y: 0, active: false });
+  };
+
+  const handlePointerCancel = () => {
+    setPointerStartPos({ x: 0, y: 0, active: false });
+  };
+
 
   // Sidebar Collapse State (desktop only)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
@@ -821,6 +916,26 @@ export default function App() {
       }
       setCorrectionTarget({ teacherName, oldStatus: currentStatus, newStatus, item });
     }
+  };
+
+  const handleFocusAction = (teacherName, item, currentStatus, newStatus) => {
+    if (isAnimating) return;
+    
+    if (currentStatus !== newStatus) {
+      handleStatusClick(teacherName, item, currentStatus, newStatus);
+    }
+    
+    setIsAnimating(true);
+    
+    setTimeout(() => {
+      setIsAnimating(false);
+      const allTeachers = getTeachersForSelectedJam();
+      if (currentTeacherIndex < allTeachers.length - 1) {
+        setCurrentTeacherIndex(prev => prev + 1);
+      } else {
+        autoNextJam();
+      }
+    }, 250);
   };
 
   const confirmCorrection = async () => {
@@ -1094,7 +1209,7 @@ export default function App() {
       if (!name || map[name.toLowerCase()]) return;
       map[name.toLowerCase()] = { nama_guru: name, kelas: log.kelas || "Pengganti", mapel: log.mapel || "Lainnya", currentStatus: (log.status || "BELUM").toUpperCase() };
     });
-    let list = Object.values(map).sort((a, b) => a.nama_guru.localeCompare(b.nama_guru));
+    let list = Object.values(map).sort(sortClasses);
     return list;
   };
 
@@ -1250,9 +1365,9 @@ export default function App() {
 
   const statusActionsList = [
     { key: "HADIR", label: "Hadir", cls: "hadir" },
+    { key: "ALPHA", label: "Alpa", cls: "alpha" },
     { key: "IZIN", label: "Izin", cls: "izin" },
     { key: "SAKIT", label: "Sakit", cls: "sakit" },
-    { key: "ALPHA", label: "Alpa", cls: "alpha" },
     { key: "LIBUR", label: "Libur", cls: "libur" },
   ];
 
@@ -1504,10 +1619,82 @@ export default function App() {
                   </div>
                   <div className="absensi-grid">
                     
-                    {/* Configuration Controls & Session KBM */}
-                      <IOSCard className="session-config-card">
-                        <div className="session-config-wrapper">
-                          {/* Tanggal */}
+                    {/* Configuration Controls OR Focus Card */}
+                    {showFinishedMessage && isPortraitMobile ? (
+                      <div className="focus-card-wrapper animate-spring-slide-down">
+                        <IOSCard className="focus-card" style={{ padding: "var(--space-32) var(--space-20)", textAlign: "center", justifyContent: "center" }}>
+                          <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--color-primary)" }}>Absensi seluruh sesi hari ini selesai.</h3>
+                        </IOSCard>
+                      </div>
+                    ) : panelMode === "FOCUS" && isPortraitMobile ? (
+                      (() => {
+                        const allTeachers = getTeachersForSelectedJam();
+                        const teacher = allTeachers[currentTeacherIndex];
+                        if (!teacher) {
+                          setPanelMode("LIST");
+                          return null;
+                        }
+                        const hasNext = currentTeacherIndex < allTeachers.length - 1;
+                        const hasNext2 = currentTeacherIndex < allTeachers.length - 2;
+                        const nextTeacher = hasNext ? allTeachers[currentTeacherIndex + 1] : null;
+                        const dateShort = (() => {
+                          const d = new Date(selectedDate);
+                          const months = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+                          return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+                        })();
+                        return (
+                          <div 
+                            className="focus-stack-container top-panel-gesture-area"
+                            key={currentTeacherIndex}
+                            onPointerDown={handlePointerDown}
+                            onPointerUp={handlePointerUp}
+                            onPointerCancel={handlePointerCancel}
+                          >
+                            {/* Card utama */}
+                            <div className="focus-stack-main animate-focus-card-enter">
+                              <IOSCard className="focus-card">
+                                <div className="focus-card-header">
+                                  <div className="focus-card-name-block">
+                                    <h3 className="focus-card-name">{teacher.nama_guru}</h3>
+                                    <p className="focus-card-subtitle">{teacher.kelas} · {teacher.mapel} ·JAM {selectedJam}</p>
+                                  </div>
+                                  <span className="focus-card-date-link">{dateShort} <span className="focus-card-chevron">›</span></span>
+                                </div>
+                                <div className="focus-card-divider" />
+                                <div className="focus-card-actions">
+                                  {statusActionsList.map(act => (
+                                    <button
+                                      key={act.key}
+                                      disabled={isAnimating}
+                                      className={`focus-action-btn focus-action-${act.cls} ${teacher.currentStatus === act.key ? "active" : ""}`}
+                                      onClick={() => handleFocusAction(teacher.nama_guru, teacher, teacher.currentStatus, act.key)}
+                                    >
+                                      {act.key.charAt(0)}
+                                    </button>
+                                  ))}
+                                </div>
+                              </IOSCard>
+                            </div>
+                            {/* Stacked card edges behind — thin strips like the reference */}
+                            {hasNext && (
+                              <div className="focus-stack-edge focus-stack-edge-1" />
+                            )}
+                            {hasNext2 && (
+                              <div className="focus-stack-edge focus-stack-edge-2" />
+                            )}
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <div 
+                        onPointerDown={handlePointerDown} 
+                        onPointerUp={handlePointerUp} 
+                        onPointerCancel={handlePointerCancel} 
+                        className="animate-spring-slide-down top-panel-gesture-area"
+                      >
+                        <IOSCard className="session-config-card">
+                          <div className="session-config-wrapper">
+                            {/* Tanggal */}
                           <div className="session-config-tanggal">
                             <div className="session-config-tanggal-text">
                               <div className="session-config-date">
@@ -1540,6 +1727,8 @@ export default function App() {
                           </div>
                         </div>
                       </IOSCard>
+                    </div>
+                    )}
 
                       {/* Ringkasan Status Section */}
                       {(() => {
