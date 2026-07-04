@@ -40,6 +40,14 @@ import {
   SecurityOutlined as SecurityOutlinedIcon,
   PeopleOutlined as PeopleOutlinedIcon
 } from "@mui/icons-material";
+import {
+  PersonOutlined as PersonIcon,
+  PersonOffOutlined as PersonOffIcon,
+  AccessTimeOutlined as AccessTimeIcon,
+  LocalHospitalOutlined as HospitalIcon,
+  LocalCafeOutlined as CafeIcon
+} from "@mui/icons-material";
+import ToastContainer from "./ToastContainer";
 
 const capitalize = (s) => {
   if (!s) return "";
@@ -64,6 +72,27 @@ const indoMonths = [
   { value: 7, label: "Juli" }, { value: 8, label: "Agustus" }, { value: 9, label: "September" },
   { value: 10, label: "Oktober" }, { value: 11, label: "November" }, { value: 12, label: "Desember" }
 ];
+
+const getInitials = (name) => {
+  if (!name) return "";
+  // Hapus gelar (S.Pd., S.Kom., dll) untuk mendapatkan inisial nama asli
+  const cleanName = name.replace(/,.*$/, "").trim();
+  const parts = cleanName.split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return parts[0].substring(0, 2).toUpperCase();
+};
+
+const getAvatarColorClass = (name) => {
+  const colors = ["blue", "green", "orange", "purple", "pink", "teal"];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % colors.length;
+  return `avatar-bg-${colors[index]}`;
+};
 
 // ═══════════════════════════════════════════
 // REUSABLE NATIVE IOS COMPONENTS
@@ -456,24 +485,7 @@ const IOSSegmentedControl = memo(({ segments, selectedValue, onChange, disabled 
 // ═══════════════════════════════════════════
 let toastIdCounter = 0;
 
-function ToastContainer({ toasts, onRemove }) {
-  return (
-    <div className="toast-container">
-      {toasts.map(t => (
-        <div key={t.id} className={`toast ${t.type} ${t.exiting ? "exiting" : ""}`}>
-          {t.type === "success" && <CheckCircleOutlinedIcon style={{ color: "var(--color-secondary)" }} />}
-          {t.type === "error" && <ErrorOutlineIcon style={{ color: "var(--color-danger)" }} />}
-          {t.type === "info" && <InfoOutlinedIcon style={{ color: "var(--color-primary)" }} />}
-          {t.type === "warning" && <WarningAmberOutlinedIcon style={{ color: "var(--color-warning)" }} />}
-          <span style={{ flex: 1, fontSize: "var(--hig-fs-footnote)" }}>{t.message}</span>
-          <button className="btn-ghost" onClick={() => onRemove(t.id)} style={{ padding: "2px", minWidth: "auto" }} aria-label="Tutup notifikasi">
-            <CloseOutlinedIcon style={{ fontSize: "1rem" }} />
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
+
 
 const defaultPermissions = {
   ADMIN: {
@@ -761,22 +773,50 @@ export default function App() {
   const [exportLoading, setExportLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Toasts
+  // Sistem Antrean Notifikasi (Toast)
   const [toasts, setToasts] = useState([]);
 
+  // Fungsi untuk menambahkan notifikasi baru ke dalam antrean
   const showToast = useCallback((message, type = "info") => {
     const id = ++toastIdCounter;
-    setToasts(prev => [...prev, { id, message, type, exiting: false }]);
-    setTimeout(() => {
-      setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
-      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 300);
-    }, 4000);
+    setToasts(prev => {
+      // Mencegah duplikasi notifikasi berurutan dengan tipe dan pesan yang sama
+      if (prev.length > 0) {
+        const last = prev[prev.length - 1];
+        if (last.message === message && last.type === type) {
+          return prev;
+        }
+      }
+      return [...prev, { id, message, type, exiting: false }];
+    });
   }, []);
 
+  // Fungsi untuk menghapus toast aktif dari antrean
   const removeToast = useCallback((id) => {
-    setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 300);
+    setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
+
+  // Dapatkan ID dan status keluar dari toast aktif (paling depan di antrean)
+  const activeToastId = toasts.length > 0 ? toasts[0].id : null;
+  const activeToastExiting = toasts.length > 0 ? toasts[0].exiting : null;
+
+  // Efek untuk mengatur timer auto-dismiss hanya untuk toast yang sedang aktif
+  useEffect(() => {
+    if (!activeToastId || activeToastExiting) return;
+
+    // Timer auto-dismiss selama 2.8 detik sebelum transisi keluar (exiting)
+    const timer = setTimeout(() => {
+      setToasts(prev => {
+        if (prev.length > 0 && prev[0].id === activeToastId) {
+          return [{ ...prev[0], exiting: true }, ...prev.slice(1)];
+        }
+        return prev;
+      });
+    }, 2800);
+
+    // Membersihkan timer untuk mencegah memory leak
+    return () => clearTimeout(timer);
+  }, [activeToastId, activeToastExiting]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token"); localStorage.removeItem("user");
@@ -1341,7 +1381,7 @@ export default function App() {
       filteredLogs = filteredLogs.filter(l => (l.nama_guru || "").trim().toLowerCase() === user?.name?.trim().toLowerCase());
     }
     filteredSchedule.forEach(r => { const n = (r.nama_guru || "").trim(); const j = String(r.jam).trim(); if (n && j) keys.add(`${n.toLowerCase()}|||${j}`); });
-    filteredLogs.forEach(l => { const n = (l.nama_guru || "").trim(); const j = String(l.jam).trim(); if (n && j) keys.delete(`${n.toLowerCase()}|||${j}`); });
+    filteredLogs.forEach(l => { const n = (l.nama_guru || "").trim(); const j = String(r.jam).trim(); if (n && j) keys.delete(`${n.toLowerCase()}|||${j}`); });
     return keys.size;
   };
 
@@ -1507,20 +1547,20 @@ export default function App() {
               </div>
 
               <nav style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                <button onClick={() => setActiveTab("absensi")} className={`sidebar-nav-item ${activeTab === "absensi" ? "active" : ""}`} aria-label="Halaman Absen Harian">
-                  <CalendarMonthOutlinedIcon /> Absen Harian
+                <button onClick={() => setActiveTab("absensi")} className={`sidebar-nav-item ${activeTab === "absensi" ? "active" : ""}`} aria-label="Halaman Absen">
+                  <CalendarMonthOutlinedIcon /> Absen
                 </button>
-                <button onClick={() => setActiveTab("rekap-bulanan")} className={`sidebar-nav-item ${activeTab === "rekap-bulanan" ? "active" : ""}`} aria-label="Halaman Rekap Bulanan">
-                  <BarChartOutlinedIcon /> Rekap Bulanan
+                <button onClick={() => setActiveTab("rekap-bulanan")} className={`sidebar-nav-item ${activeTab === "rekap-bulanan" ? "active" : ""}`} aria-label="Halaman Rekap">
+                  <BarChartOutlinedIcon /> Rekap
                 </button>
                 {(user?.role === "SUPERADMIN" || hasPermission("kirim_pengingat_whatsapp") || hasPermission("kirim_pengumuman_whatsapp") || hasPermission("kelola_pengaturan_sistem") || hasPermission("kelola_akun_guru") || hasPermission("kelola_akun_admin") || hasPermission("lihat_log_aktivitas")) && (
-                  <button onClick={() => setActiveTab("admin")} className={`sidebar-nav-item ${activeTab === "admin" ? "active" : ""}`} aria-label="Halaman Panel Kontrol">
-                    <TuneOutlinedIcon /> Panel Kontrol
+                  <button onClick={() => setActiveTab("admin")} className={`sidebar-nav-item ${activeTab === "admin" ? "active" : ""}`} aria-label="Halaman Kontrol">
+                    <TuneOutlinedIcon /> Kontrol
                   </button>
                 )}
                 {user?.role === "SUPERADMIN" && (
-                  <button onClick={() => setActiveTab("permissions")} className={`sidebar-nav-item ${activeTab === "permissions" ? "active" : ""}`} aria-label="Pengaturan Hak Akses">
-                    <LockPersonOutlinedIcon /> Pengaturan Akses
+                  <button onClick={() => setActiveTab("permissions")} className={`sidebar-nav-item ${activeTab === "permissions" ? "active" : ""}`} aria-label="Halaman Akses">
+                    <LockPersonOutlinedIcon /> Akses
                   </button>
                 )}
               </nav>
@@ -1564,7 +1604,7 @@ export default function App() {
           {/* ═══ 4. MAIN CONTAINER ═══ */}
           <main className={`main-content${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
             {/* Mobile Navigation Header */}
-             <header className="mobile-header" style={{ justifyContent: "space-between", padding: "0 var(--space-16)" }}>
+             <header className="mobile-header">
               <div style={{ width: "80px", display: "flex", alignItems: "center" }}>
                 {/* Desktop sidebar toggle — mobile-only slot keeps SchoolIcon */}
                 <button
@@ -1575,37 +1615,32 @@ export default function App() {
                 >
                   <SidebarToggleIcon style={{ fontSize: "1.25rem" }} />
                 </button>
-                <SchoolOutlinedIcon className="mobile-only" style={{ fontSize: "1.2rem", color: "var(--color-text-secondary)" }} />
-              </div>
-              <h2 className="ios-nav-bar-title" style={{ flex: 1, textAlign: "center" }}>
-                {activeTab === "absensi" && "Absensi Harian"}
-                {activeTab === "rekap-bulanan" && "Rekap Bulanan"}
-                {activeTab === "admin" && "Panel Kontrol"}
-                {activeTab === "permissions" && "Pengaturan Akses"}
-              </h2>
-              <div style={{ width: "80px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "var(--space-8)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "2px", fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: isWaOnline ? "var(--color-secondary)" : "var(--color-danger)" }}>
-                  <FiberManualRecordIcon style={{ fontSize: "0.55rem" }} />
-                  <span>{isWaOnline ? "ON" : "OFF"}</span>
+                <div className="mobile-only circular-glass-icon-btn header-left-icon">
+                  <SchoolOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--label-primary)" }} />
                 </div>
+              </div>
+              <h2 className="ios-nav-bar-title" style={{ flex: 1, textAlign: "center", fontSize: "var(--hig-fs-nav-title)", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
+                {activeTab === "absensi" ? (
+                  <>
+                    <span>Absensi Harian</span>
+                    <span className="header-wa-status" style={{ color: isWaOnline ? "var(--green)" : "var(--red)", fontSize: "13px", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "4px" }}>
+                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isWaOnline ? "var(--green)" : "var(--red)", display: "inline-block" }}></span>
+                      {isWaOnline ? "ON" : "OFF"}
+                    </span>
+                  </>
+                ) : (
+                  activeTab === "rekap-bulanan" ? "Rekap Bulanan" :
+                  activeTab === "admin" ? "Panel Kontrol" :
+                  activeTab === "permissions" ? "Pengaturan Akses" : ""
+                )}
+              </h2>
+              <div style={{ width: "80px", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
                 <button
                   onClick={() => setShowMobileProfileSheet(true)}
-                  className="mobile-only"
-                  style={{ 
-                    padding: 0, 
-                    width: "28px", 
-                    height: "28px", 
-                    borderRadius: "50%", 
-                    background: "var(--color-surface)", 
-                    border: "0.5px solid var(--color-separator)", 
-                    display: "flex", 
-                    justifyContent: "center", 
-                    alignItems: "center", 
-                    cursor: "pointer" 
-                  }}
+                  className="mobile-only circular-glass-icon-btn header-profile-btn"
                   aria-label="Profil Pengguna"
                 >
-                  <PersonOutlineOutlinedIcon style={{ fontSize: "1rem", color: "var(--color-text-primary)" }} />
+                  <PersonOutlineOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--label-primary)" }} />
                 </button>
               </div>
             </header>
@@ -1615,7 +1650,7 @@ export default function App() {
               <div className="scroll-inertia animate-slide-up" style={{ flex: 1 }}>
                 <div className="main-content-scrollable">
                   <div style={{ fontSize: "var(--hig-fs-caption)", color: "var(--color-text-secondary)", padding: "0 var(--space-4)", letterSpacing: "var(--ls-caption)", textTransform: "uppercase" }}>
-                    {getFormattedDateIndo(selectedDate)} · {getFormattedTime()} WIB
+                    {getFormattedDateIndo(selectedDate)} • {getFormattedTime()} WIB
                   </div>
                   <div className="absensi-grid">
                     
@@ -1696,6 +1731,9 @@ export default function App() {
                           <div className="session-config-wrapper">
                             {/* Tanggal */}
                           <div className="session-config-tanggal">
+                            <div className="session-config-calendar-icon-wrapper">
+                              <CalendarMonthOutlinedIcon className="session-config-calendar-icon" />
+                            </div>
                             <div className="session-config-tanggal-text">
                               <div className="session-config-date">
                                 {getFormattedDateIndo(selectedDate).split(",")[1]?.trim() || getFormattedDateIndo(selectedDate)}
@@ -1712,7 +1750,10 @@ export default function App() {
 
                           {/* Sesi KBM */}
                           <div className="session-config-sesi">
-                            <div className="session-config-sesi-label">Sesi KBM Aktif</div>
+                            <div className="session-config-sesi-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                              <div className="session-config-sesi-label" style={{ margin: 0 }}>Sesi KBM Aktif</div>
+                              <InfoOutlinedIcon style={{ color: "var(--blue)", cursor: "pointer", fontSize: "1.2rem" }} />
+                            </div>
                             <div className="session-config-sesi-control">
                               <IOSSegmentedControl
                                 segments={[
@@ -1754,36 +1795,36 @@ export default function App() {
                                 className={`absensi-summary-card ${absensiStatusFilter === "HADIR" ? "active active-hadir" : ""}`}
                                 onClick={() => toggleStatusFilter("HADIR")}
                               >
-                                <span className="absensi-summary-count" style={{ color: "var(--color-secondary)" }}>{countHadir}</span>
-                                <span className="absensi-summary-label" style={{ color: "var(--color-secondary)" }}>Hadir</span>
+                                <span className="absensi-summary-count">{countHadir}</span>
+                                <span className="absensi-summary-label label-hadir">Hadir</span>
                               </div>
                               <div
                                 className={`absensi-summary-card ${absensiStatusFilter === "ALPHA" ? "active active-alpa" : ""}`}
                                 onClick={() => toggleStatusFilter("ALPHA")}
                               >
-                                <span className="absensi-summary-count" style={{ color: "var(--color-danger)" }}>{countAlpa}</span>
-                                <span className="absensi-summary-label" style={{ color: "var(--color-danger)" }}>Alpa</span>
+                                <span className="absensi-summary-count">{countAlpa}</span>
+                                <span className="absensi-summary-label label-alpa">Alpa</span>
                               </div>
                               <div
                                 className={`absensi-summary-card ${absensiStatusFilter === "IZIN" ? "active active-izin" : ""}`}
                                 onClick={() => toggleStatusFilter("IZIN")}
                               >
-                                <span className="absensi-summary-count" style={{ color: "var(--color-warning)" }}>{countIzin}</span>
-                                <span className="absensi-summary-label" style={{ color: "var(--color-warning)" }}>Izin</span>
+                                <span className="absensi-summary-count">{countIzin}</span>
+                                <span className="absensi-summary-label label-izin">Izin</span>
                               </div>
                               <div
                                 className={`absensi-summary-card ${absensiStatusFilter === "SAKIT" ? "active active-sakit" : ""}`}
                                 onClick={() => toggleStatusFilter("SAKIT")}
                               >
-                                <span className="absensi-summary-count" style={{ color: "var(--color-purple)" }}>{countSakit}</span>
-                                <span className="absensi-summary-label" style={{ color: "var(--color-purple)" }}>Sakit</span>
+                                <span className="absensi-summary-count">{countSakit}</span>
+                                <span className="absensi-summary-label label-sakit">Sakit</span>
                               </div>
                               <div
                                 className={`absensi-summary-card ${absensiStatusFilter === "LIBUR" ? "active active-libur" : ""}`}
                                 onClick={() => toggleStatusFilter("LIBUR")}
                               >
-                                <span className="absensi-summary-count" style={{ color: "var(--color-primary)" }}>{countLibur}</span>
-                                <span className="absensi-summary-label" style={{ color: "var(--color-primary)" }}>Libur</span>
+                                <span className="absensi-summary-count">{countLibur}</span>
+                                <span className="absensi-summary-label label-libur">Libur</span>
                               </div>
                             </div>
                           </IOSSection>
@@ -1924,9 +1965,14 @@ export default function App() {
                                         </div>
                                       )}
 
-                                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                        <span style={{ fontSize: "var(--hig-fs-headline)", fontWeight: "600", color: "var(--color-text-primary)" }}>{row.nama_guru}</span>
-                                        <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>{row.kelas} · {row.mapel}</span>
+                                      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-12)", width: "100%" }}>
+                                        <div className={`teacher-avatar ${getAvatarColorClass(row.nama_guru)}`}>
+                                          {getInitials(row.nama_guru)}
+                                        </div>
+                                        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                                          <span style={{ fontSize: "var(--hig-fs-headline)", fontWeight: "600", color: "var(--label-primary)" }}>{row.nama_guru}</span>
+                                          <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--label-secondary)" }}>{row.kelas} • {row.mapel}</span>
+                                        </div>
                                       </div>
                                     </IOSListRow>
                                   );
@@ -2186,81 +2232,99 @@ export default function App() {
                   }}>
                     {/* WA Server Metric Card */}
                     <IOSCard style={{
-                      padding: "var(--space-12) var(--space-16)",
+                      padding: "var(--space-16)",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
-                      gap: "var(--space-8)"
+                      justifyContent: "center",
+                      textAlign: "center",
+                      gap: "var(--space-8)",
+                      height: "120px",
+                      boxSizing: "border-box",
+                      borderRadius: "20px"
                     }}>
                       <div style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "var(--radius-medium)",
-                        background: "var(--color-primary-tint, rgba(10, 132, 255, 0.15))",
-                        color: "var(--color-primary)"
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "50%",
+                        background: "rgba(10, 132, 255, 0.15)",
+                        color: "var(--blue)"
                       }}>
                         <PhoneAndroidOutlinedIcon style={{ fontSize: "1.2rem" }} />
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>WA Server</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--label-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>WA Server</span>
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
-                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isWaOnline ? "var(--color-secondary)" : "var(--color-danger)" }}></span>
-                          <strong style={{ fontSize: "var(--hig-fs-footnote)", color: isWaOnline ? "var(--color-secondary)" : "var(--color-danger)" }}>{isWaOnline ? "Online" : "Offline"}</strong>
+                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isWaOnline ? "var(--green)" : "var(--red)" }}></span>
+                          <strong style={{ fontSize: "var(--hig-fs-footnote)", color: isWaOnline ? "var(--green)" : "var(--red)" }}>{isWaOnline ? "Online" : "Offline"}</strong>
                         </div>
                       </div>
                     </IOSCard>
 
                     {/* Scheduler Metric Card */}
                     <IOSCard style={{
-                      padding: "var(--space-12) var(--space-16)",
+                      padding: "var(--space-16)",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
-                      gap: "var(--space-8)"
+                      justifyContent: "center",
+                      textAlign: "center",
+                      gap: "var(--space-8)",
+                      height: "120px",
+                      boxSizing: "border-box",
+                      borderRadius: "20px"
                     }}>
                       <div style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "var(--radius-medium)",
-                        background: "var(--color-warning-tint, rgba(255, 159, 10, 0.15))",
-                        color: "var(--color-warning)"
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "50%",
+                        background: "rgba(255, 159, 10, 0.15)",
+                        color: "var(--orange)"
                       }}>
                         <CalendarMonthOutlinedIcon style={{ fontSize: "1.2rem" }} />
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Scheduler</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--label-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Scheduler</span>
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
-                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isSchedulerActive ? "var(--color-secondary)" : "var(--color-warning)" }}></span>
-                          <strong style={{ fontSize: "var(--hig-fs-footnote)", color: isSchedulerActive ? "var(--color-secondary)" : "var(--color-warning)" }}>{isSchedulerActive ? "Aktif" : "Nonaktif"}</strong>
+                          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isSchedulerActive ? "var(--green)" : "var(--orange)" }}></span>
+                          <strong style={{ fontSize: "var(--hig-fs-footnote)", color: isSchedulerActive ? "var(--green)" : "var(--orange)" }}>{isSchedulerActive ? "Aktif" : "Nonaktif"}</strong>
                         </div>
                       </div>
                     </IOSCard>
 
                     {/* Task Queue Metric Card */}
                     <IOSCard style={{
-                      padding: "var(--space-12) var(--space-16)",
+                      padding: "var(--space-16)",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
-                      gap: "var(--space-8)"
+                      justifyContent: "center",
+                      textAlign: "center",
+                      gap: "var(--space-8)",
+                      height: "120px",
+                      boxSizing: "border-box",
+                      borderRadius: "20px"
                     }}>
                       <div style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "var(--radius-medium)",
-                        background: "var(--color-purple-tint, rgba(191, 90, 242, 0.15))",
-                        color: "var(--color-primary)"
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "50%",
+                        background: "rgba(191, 90, 242, 0.15)",
+                        color: "var(--purple)"
                       }}>
                         <SyncOutlinedIcon style={{ fontSize: "1.2rem" }} />
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Task Queue</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--label-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Task Queue</span>
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
                           <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: queueColor }}></span>
                           <strong style={{ fontSize: "var(--hig-fs-footnote)", color: queueColor }}>{queueLabel}</strong>
@@ -2270,25 +2334,31 @@ export default function App() {
 
                     {/* System Status Metric Card */}
                     <IOSCard style={{
-                      padding: "var(--space-12) var(--space-16)",
+                      padding: "var(--space-16)",
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
-                      gap: "var(--space-8)"
+                      justifyContent: "center",
+                      textAlign: "center",
+                      gap: "var(--space-8)",
+                      height: "120px",
+                      boxSizing: "border-box",
+                      borderRadius: "20px"
                     }}>
                       <div style={{
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        width: "32px",
-                        height: "32px",
-                        borderRadius: "var(--radius-medium)",
-                        background: sysStatusLabel === "Stabil" ? "var(--color-secondary-tint, rgba(48, 209, 88, 0.15))" : sysStatusLabel === "Gangguan" ? "var(--color-danger-tint, rgba(255, 59, 48, 0.15))" : "var(--color-warning-tint, rgba(255, 159, 10, 0.15))",
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "50%",
+                        background: sysStatusLabel === "Stabil" ? "rgba(48, 209, 88, 0.15)" : sysStatusLabel === "Gangguan" ? "rgba(255, 69, 58, 0.15)" : "rgba(255, 159, 10, 0.15)",
                         color: sysStatusColor
                       }}>
                         <SecurityOutlinedIcon style={{ fontSize: "1.2rem" }} />
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column" }}>
-                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--color-text-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Status Sistem</span>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--label-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>Status Sistem</span>
                         <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
                           <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: sysStatusColor }}></span>
                           <strong style={{ fontSize: "var(--hig-fs-footnote)", color: sysStatusColor }}>{sysStatusLabel}</strong>
@@ -2377,79 +2447,8 @@ export default function App() {
                       gap: "var(--space-16)",
                       alignItems: "start"
                     }}>
-                      {/* Left Column: Kelola Akun Guru & Log Aktivitas */}
+                      {/* Left Column: Log Aktivitas & Tentang Sistem */}
                       <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
-                        {/* Kelola Akun Guru Card */}
-                        {hasPermission('kelola_akun_guru') && (
-                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
-                                <ManageAccountsOutlinedIcon style={{ color: "var(--color-secondary)", fontSize: "1.4rem" }} />
-                                <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Kelola Akun Guru</h3>
-                              </div>
-                              <button 
-                                type="button" 
-                                onClick={() => setShowManageTeacherModal(true)} 
-                                className="btn-ghost" 
-                                style={{ padding: "2px 8px", fontSize: "var(--hig-fs-badge)", color: "var(--color-primary)", cursor: "pointer", display: "flex", alignItems: "center", border: "none", background: "none", fontWeight: "600" }}
-                              >
-                                Lihat Semua
-                              </button>
-                            </div>
-                            
-                            {/* Account Summary Stats Indicators */}
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)", background: "var(--color-surface)", padding: "var(--space-8) var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", textAlign: "center" }}>
-                              <div>
-                                <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-secondary)" }}>
-                                  {getTeacherAccountSummary().userCount}
-                                </div>
-                                <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Guru</div>
-                              </div>
-                              <div style={{ borderLeft: "0.5px solid var(--color-separator)", borderRight: "0.5px solid var(--color-separator)" }}>
-                                <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-primary)" }}>
-                                  {getTeacherAccountSummary().adminCount}
-                                </div>
-                                <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Admin</div>
-                              </div>
-                              <div>
-                                <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-primary)" }}>
-                                  {getTeacherAccountSummary().superadminCount}
-                                </div>
-                                <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Super</div>
-                              </div>
-                            </div>
-
-                            {/* Recent Teacher List Summary (Latest 3 Teachers) */}
-                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)", marginTop: "4px" }}>
-                              {contacts.length === 0 ? (
-                                <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", textAlign: "center", padding: "var(--space-8)" }}>
-                                  Belum ada data guru pengajar.
-                                </p>
-                              ) : (
-                                contacts.slice(0, 3).map((t, idx) => (
-                                  <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-8) var(--space-12)", background: "var(--color-surface)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", gap: "var(--space-8)" }}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", minWidth: 0, flex: 1 }}>
-                                      <IOSAvatar name={t.nama_guru || t.nama} />
-                                      <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-                                        <span style={{ fontWeight: "600", color: "var(--color-text-primary)", fontSize: "var(--hig-fs-footnote)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.nama_guru || t.nama}</span>
-                                        <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)" }}>{t.no_wa || t.nomor_wa || "-"}</span>
-                                      </div>
-                                    </div>
-                                    <IOSButton 
-                                      onClick={() => { setTeacherToReset(t); setShowResetConfirm(true); }} 
-                                      variant="secondary" 
-                                      style={{ padding: "0 8px", fontSize: "var(--hig-fs-badge)", height: "22px", borderRadius: "var(--radius-small)", flexShrink: 0 }}
-                                      ariaLabel={`Reset sandi ${t.nama_guru || t.nama}`}
-                                    >
-                                      <KeyOutlinedIcon style={{ fontSize: "0.75rem", marginRight: "2px" }} /> Reset
-                                    </IOSButton>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </IOSCard>
-                        )}
-
                         {/* Log Aktivitas Card */}
                         {hasPermission('lihat_log_aktivitas') && (
                           <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
@@ -2495,6 +2494,17 @@ export default function App() {
                             </div>
                           </IOSCard>
                         )}
+
+                        {/* Tentang Sistem Card */}
+                        <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+                            <InfoOutlinedIcon style={{ color: "var(--color-primary)", fontSize: "1.4rem" }} />
+                            <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Tentang Sistem</h3>
+                          </div>
+                          <div style={{ background: "var(--color-grouped-bg)", padding: "var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", lineHeight: "1.5" }}>
+                            Sistem Absensi Digital MA. Miftahul Ulum 2 dirancang untuk mempermudah pencatatan kehadiran guru piket dan guru pengajar secara otomatis serta terintegrasi dengan pengingat WhatsApp.
+                          </div>
+                        </IOSCard>
                       </div>
 
                       {/* Right Column: Broadcast & Log Retention */}
@@ -2639,61 +2649,144 @@ export default function App() {
               <div className="scroll-inertia animate-slide-up" style={{ flex: 1 }}>
                 <div className="main-content-scrollable" style={{ paddingLeft: "max(var(--sp-20), env(safe-area-inset-left))", paddingRight: "max(var(--sp-20), env(safe-area-inset-right))" }}>
                   <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "var(--space-4)", marginBottom: "var(--space-16)" }}>
-                    Atur hak akses ADMIN dan USER.
+                    Atur hak akses peran serta kelola data akun guru.
                   </div>
-                  
-                  <IOSCard style={{ padding: 0, overflow: "hidden" }}>
-                    {/* Header Row */}
-                    <div className="permissions-header" style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr minmax(56px, 72px) minmax(56px, 72px)",
-                      gap: 0,
-                      background: "var(--color-surface)",
-                      borderBottom: "0.5px solid var(--color-separator)",
-                      padding: "var(--space-12) var(--space-16)"
-                    }}>
-                      <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", display: "flex", alignItems: "center" }}>
-                        Fitur / Hak Akses
-                      </span>
-                      <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        ADMIN
-                      </span>
-                      <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        USER
-                      </span>
+
+                  <div style={{ 
+                    display: "grid", 
+                    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", 
+                    gap: "var(--space-16)",
+                    alignItems: "start"
+                  }}>
+                    {/* Left Column: Permission Matrix */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
+                      <IOSCard style={{ padding: 0, overflow: "hidden" }}>
+                        {/* Header Row */}
+                        <div className="permissions-header" style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr minmax(56px, 72px) minmax(56px, 72px)",
+                          gap: 0,
+                          background: "var(--color-surface)",
+                          borderBottom: "0.5px solid var(--color-separator)",
+                          padding: "var(--space-12) var(--space-16)"
+                        }}>
+                          <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", display: "flex", alignItems: "center" }}>
+                            Fitur / Hak Akses
+                          </span>
+                          <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            ADMIN
+                          </span>
+                          <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            USER
+                          </span>
+                        </div>
+
+                        {/* Permission Rows */}
+                        {permissionList.map((p) => (
+                          <div key={p.key} style={{
+                            display: "grid",
+                            gridTemplateColumns: "1fr minmax(56px, 72px) minmax(56px, 72px)",
+                            gap: 0,
+                            padding: "var(--space-12) var(--space-16)",
+                            borderBottom: "0.5px solid var(--color-separator)",
+                            alignItems: "center",
+                            minHeight: "48px"
+                          }}>
+                            <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: "500", color: "var(--color-text-primary)", paddingRight: "var(--space-8)" }}>
+                              {p.label}
+                            </span>
+                            <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                              <IOSSwitch 
+                                checked={!!permissions.ADMIN?.[p.key]} 
+                                onChange={(e) => handlePermissionToggle("ADMIN", p.key, e.target.checked)} 
+                                ariaLabel={`Toggle ${p.label} untuk ADMIN`}
+                              />
+                            </div>
+                            <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                              <IOSSwitch 
+                                checked={!!permissions.USER?.[p.key]} 
+                                onChange={(e) => handlePermissionToggle("USER", p.key, e.target.checked)} 
+                                ariaLabel={`Toggle ${p.label} untuk USER`}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </IOSCard>
                     </div>
 
-                    {/* Permission Rows */}
-                    {permissionList.map((p) => (
-                      <div key={p.key} style={{
-                        display: "grid",
-                        gridTemplateColumns: "1fr minmax(56px, 72px) minmax(56px, 72px)",
-                        gap: 0,
-                        padding: "var(--space-12) var(--space-16)",
-                        borderBottom: "0.5px solid var(--color-separator)",
-                        alignItems: "center",
-                        minHeight: "48px"
-                      }}>
-                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: "500", color: "var(--color-text-primary)", paddingRight: "var(--space-8)" }}>
-                          {p.label}
-                        </span>
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                          <IOSSwitch 
-                            checked={!!permissions.ADMIN?.[p.key]} 
-                            onChange={(e) => handlePermissionToggle("ADMIN", p.key, e.target.checked)} 
-                            ariaLabel={`Toggle ${p.label} untuk ADMIN`}
-                          />
-                        </div>
-                        <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-                          <IOSSwitch 
-                            checked={!!permissions.USER?.[p.key]} 
-                            onChange={(e) => handlePermissionToggle("USER", p.key, e.target.checked)} 
-                            ariaLabel={`Toggle ${p.label} untuk USER`}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </IOSCard>
+                    {/* Right Column: Kelola Akun Guru */}
+                    <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
+                      {hasPermission('kelola_akun_guru') && (
+                        <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
+                              <ManageAccountsOutlinedIcon style={{ color: "var(--color-secondary)", fontSize: "1.4rem" }} />
+                              <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Kelola Akun Guru</h3>
+                            </div>
+                            <button 
+                              type="button" 
+                              onClick={() => setShowManageTeacherModal(true)} 
+                              className="btn-ghost" 
+                              style={{ padding: "2px 8px", fontSize: "var(--hig-fs-badge)", color: "var(--color-primary)", cursor: "pointer", display: "flex", alignItems: "center", border: "none", background: "none", fontWeight: "600" }}
+                            >
+                              Lihat Semua
+                            </button>
+                          </div>
+                          
+                          {/* Account Summary Stats Indicators */}
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)", background: "var(--color-surface)", padding: "var(--space-8) var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", textAlign: "center" }}>
+                            <div>
+                              <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-secondary)" }}>
+                                {getTeacherAccountSummary().userCount}
+                              </div>
+                              <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Guru</div>
+                            </div>
+                            <div style={{ borderLeft: "0.5px solid var(--color-separator)", borderRight: "0.5px solid var(--color-separator)" }}>
+                              <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-primary)" }}>
+                                {getTeacherAccountSummary().adminCount}
+                              </div>
+                              <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Admin</div>
+                            </div>
+                            <div>
+                              <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-primary)" }}>
+                                {getTeacherAccountSummary().superadminCount}
+                              </div>
+                              <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Super</div>
+                            </div>
+                          </div>
+
+                          {/* Recent Teacher List Summary (Latest 3 Teachers) */}
+                          <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)", marginTop: "4px" }}>
+                            {contacts.length === 0 ? (
+                              <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", textAlign: "center", padding: "var(--space-8)" }}>
+                                Belum ada data guru pengajar.
+                              </p>
+                            ) : (
+                              contacts.slice(0, 3).map((t, idx) => (
+                                <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-8) var(--space-12)", background: "var(--color-surface)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", gap: "var(--space-8)" }}>
+                                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", minWidth: 0, flex: 1 }}>
+                                    <IOSAvatar name={t.nama_guru || t.nama} />
+                                    <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
+                                      <span style={{ fontWeight: "600", color: "var(--color-text-primary)", fontSize: "var(--hig-fs-footnote)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.nama_guru || t.nama}</span>
+                                      <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)" }}>{t.no_wa || t.nomor_wa || "-"}</span>
+                                    </div>
+                                  </div>
+                                  <IOSButton 
+                                    onClick={() => { setTeacherToReset(t); setShowResetConfirm(true); }} 
+                                    variant="secondary" 
+                                    style={{ padding: "0 8px", fontSize: "var(--hig-fs-badge)", height: "22px", borderRadius: "var(--radius-small)", flexShrink: 0 }}
+                                    ariaLabel={`Reset sandi ${t.nama_guru || t.nama}`}
+                                  >
+                                    <KeyOutlinedIcon style={{ fontSize: "0.75rem", marginRight: "2px" }} /> Reset
+                                  </IOSButton>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </IOSCard>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
