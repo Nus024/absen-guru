@@ -48,6 +48,9 @@ import {
   LocalCafeOutlined as CafeIcon
 } from "@mui/icons-material";
 import ToastContainer from "./ToastContainer";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const capitalize = (s) => {
   if (!s) return "";
@@ -205,7 +208,7 @@ const AppleSelect = memo(({ value, onChange, options, style, ariaLabel, classNam
       </button>
       {isOpen && (
         <div className="apple-select-dropdown" role="listbox">
-          <div className="scroll-inertia" style={{ maxHeight: "200px" }}>
+          <div style={{ maxHeight: "200px", overflowY: "auto" }}>
             {options.map(o => (
               <div
                 key={o.value}
@@ -424,7 +427,7 @@ const IOSSheet = memo(({ children, isOpen, onClose, className = "" }) => {
     <div className={`ios-sheet-overlay ${className ? className + "-overlay" : ""}`} onClick={onClose}>
       <div className={`ios-sheet ${className}`} onClick={(e) => e.stopPropagation()} role="dialog" tabIndex={-1}>
         <div className="ios-sheet-grabber"></div>
-        <div className="scroll-inertia" style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", overflowY: "auto" }}>
           {children}
         </div>
       </div>
@@ -1288,6 +1291,108 @@ export default function App() {
     finally { setSyncLoading(false); }
   };
 
+  const generateExcelClientSide = async (data, monthName, year) => {
+    const rows = data.map((row, idx) => ({
+      "No": idx + 1,
+      "Nama Guru": row.nama_guru,
+      "JTM": row.jtm_7_hari || 0,
+      "Jadwal Wajib": row.jadwal_wajib || 0,
+      "Hadir": row.hadir || 0,
+      "Izin": row.izin || 0,
+      "Sakit": row.sakit || 0,
+      "Libur": row.libur || 0,
+      "Alpa": row.alpha || 0
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, `Rekap_${monthName}`);
+
+    const maxCols = [
+      { wch: 6 },
+      { wch: 28 },
+      { wch: 8 },
+      { wch: 14 },
+      { wch: 8 },
+      { wch: 8 },
+      { wch: 8 },
+      { wch: 8 },
+      { wch: 8 }
+    ];
+    worksheet["!cols"] = maxCols;
+
+    XLSX.writeFile(workbook, `Rekap_Absensi_${monthName}_${year}.xlsx`);
+  };
+
+  const generatePDFClientSide = async (data, monthName, year) => {
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4"
+    });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("REKAP ABSENSI BULANAN GURU", 105, 15, { align: "center" });
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Periode Bulan: ${monthName} ${year}`, 105, 21, { align: "center" });
+    
+    const headers = [["No", "Nama Guru", "JTM", "Jadwal", "Hadir", "Izin", "Sakit", "Libur", "Alpa"]];
+    const body = data.map((row, idx) => [
+      idx + 1,
+      row.nama_guru,
+      row.jtm_7_hari || 0,
+      row.jadwal_wajib || 0,
+      row.hadir || 0,
+      row.izin || 0,
+      row.sakit || 0,
+      row.libur || 0,
+      row.alpha || 0
+    ]);
+
+    autoTable(doc, {
+      startY: 26,
+      head: headers,
+      body: body,
+      theme: "grid",
+      headStyles: { 
+        fillColor: [0, 122, 255],
+        textColor: 255, 
+        fontStyle: "bold",
+        halign: "center"
+      },
+      columnStyles: {
+        0: { cellWidth: 10, halign: "center" },
+        1: { cellWidth: 62 },
+        2: { cellWidth: 15, halign: "center" },
+        3: { cellWidth: 18, halign: "center" },
+        4: { cellWidth: 15, halign: "center" },
+        5: { cellWidth: 15, halign: "center" },
+        6: { cellWidth: 15, halign: "center" },
+        7: { cellWidth: 15, halign: "center" },
+        8: { cellWidth: 15, halign: "center" }
+      },
+      styles: {
+        fontSize: 9,
+        font: "helvetica",
+        cellPadding: 2.5
+      },
+      didParseCell: function (cellData) {
+        if (cellData.column.index === 8 && cellData.cell.section === "body") {
+          const val = parseInt(cellData.cell.text[0], 10);
+          if (val > 0) {
+            cellData.cell.styles.textColor = [255, 69, 58];
+            cellData.cell.styles.fontStyle = "bold";
+          }
+        }
+      }
+    });
+
+    doc.save(`Rekap_Absensi_${monthName}_${year}.pdf`);
+  };
+
   const handleExportBulanan = async (format) => {
     if (!hasPermission('ekspor_rekap')) {
       showToast("Anda tidak memiliki hak akses untuk mengekspor rekap.", "error");
@@ -1296,12 +1401,55 @@ export default function App() {
     const m = indoMonths.find(x => x.value === rekapMonth);
     if (!m) return;
     setExportLoading(true);
+
+    const isBotReady = serverStatus?.botReady;
+
+    if (isBotReady) {
+      try {
+        // Tingkat 1: Kirim via WhatsApp jika Bot Ready
+        await reportApi.eksporBulanan({ format, monthName: m.label, year: rekapYear });
+        addLocalLog("EKSPOR_REKAP", `Mengekspor rekap bulanan format ${format.toUpperCase()} untuk bulan ${m.label} ${rekapYear}`);
+        showToast("Laporan terkirim ke WhatsApp Anda!", "success");
+        setExportLoading(false);
+        return;
+      } catch (e) {
+        console.warn("Gagal mengirim via WhatsApp. Mencoba mengunduh langsung...", e);
+      }
+    }
+
     try {
-      await reportApi.eksporBulanan({ format, monthName: m.label, year: rekapYear });
-      addLocalLog("EKSPOR_REKAP", `Mengekspor rekap bulanan format ${format.toUpperCase()} untuk bulan ${m.label} ${rekapYear}`);
-      showToast("Laporan terkirim ke WhatsApp Anda!", "success");
-    } catch (e) { showToast(e.message, "error"); }
-    finally { setExportLoading(false); }
+      showToast("Mengunduh laporan rincian lengkap ke browser...", "info");
+      
+      const blob = await reportApi.downloadRekapFile(format, m.label, rekapYear);
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.download = `Rekap_Absensi_${m.label}_${rekapYear}.${format === "xlsx" ? "xlsx" : "pdf"}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(downloadUrl);
+
+      addLocalLog("EKSPOR_REKAP_BROWSER", `Mengunduh rekap bulanan format ${format.toUpperCase()} rincian lengkap via browser untuk bulan ${m.label} ${rekapYear}`);
+      showToast("Laporan rincian berhasil diunduh!", "success");
+    } catch (err) {
+      console.warn("Gagal mengunduh laporan rincian dari server. Melakukan fallback ke ringkasan lokal...", err);
+      try {
+        // Tingkat 3: Fallback ke ringkasan lokal browser
+        showToast("Server offline. Mengunduh laporan ringkasan lokal...", "info");
+        if (format === "xlsx") {
+          await generateExcelClientSide(filteredMonthlyStats, m.label, rekapYear);
+        } else {
+          await generatePDFClientSide(filteredMonthlyStats, m.label, rekapYear);
+        }
+        addLocalLog("EKSPOR_REKAP_LOCAL_FALLBACK", `Fallback unduh rekap bulanan format ${format.toUpperCase()} lokal untuk bulan ${m.label} ${rekapYear}`);
+        showToast("Laporan ringkasan berhasil diunduh!", "success");
+      } catch (localErr) {
+        showToast(`Gagal mengunduh laporan: ${localErr.message}`, "error");
+      }
+    } finally {
+      setExportLoading(false);
+    }
   };
 
   // Settings
@@ -1448,7 +1596,7 @@ export default function App() {
 
       {/* ═══ 1. LOGIN SCREEN ═══ */}
       {!token ? (
-        <div className="scroll-inertia" style={{ width: "100%", height: "100%" }}>
+        <div style={{ width: "100%", height: "100%", overflowY: "auto" }}>
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100%", padding: "var(--space-32) var(--space-16)" }}>
             <IOSCard style={{ width: "100%", maxWidth: "380px", padding: "var(--space-24)" }}>
               <div style={{ textAlign: "center", marginBottom: "var(--space-24)" }}>
@@ -1647,7 +1795,7 @@ export default function App() {
 
             {/* ═══ TAB: ABSENSI ═══ */}
             {activeTab === "absensi" && (
-              <div className="scroll-inertia animate-slide-up" style={{ flex: 1 }}>
+              <div style={{ flex: 1, overflowY: "auto" }}>
                 <div className="main-content-scrollable">
                   <div style={{ fontSize: "var(--hig-fs-caption)", color: "var(--color-text-secondary)", padding: "0 var(--space-4)", letterSpacing: "var(--ls-caption)", textTransform: "uppercase" }}>
                     {getFormattedDateIndo(selectedDate)} • {getFormattedTime()} WIB
@@ -1966,9 +2114,6 @@ export default function App() {
                                       )}
 
                                       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-12)", width: "100%" }}>
-                                        <div className={`teacher-avatar ${getAvatarColorClass(row.nama_guru)}`}>
-                                          {getInitials(row.nama_guru)}
-                                        </div>
                                         <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
                                           <span style={{ fontSize: "var(--hig-fs-headline)", fontWeight: "600", color: "var(--label-primary)" }}>{row.nama_guru}</span>
                                           <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--label-secondary)" }}>{row.kelas} • {row.mapel}</span>
@@ -1999,7 +2144,7 @@ export default function App() {
 
             {/* ═══ TAB: REKAP BULANAN ═══ */}
             {activeTab === "rekap-bulanan" && (
-              <div className="scroll-inertia animate-slide-up" style={{ flex: 1 }}>
+              <div style={{ flex: 1, overflowY: "auto" }}>
                 <div className="main-content-scrollable">
                   
                   {/* Period Filter & Search */}
@@ -2217,7 +2362,7 @@ export default function App() {
 
             {/* ═══ TAB: ADMIN ═══ */}
             {activeTab === "admin" && (
-              <div className="scroll-inertia animate-slide-up" style={{ flex: 1 }}>
+              <div style={{ flex: 1, overflowY: "auto" }}>
                 <div className="main-content-scrollable">
                   <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "var(--space-4)", marginBottom: "var(--space-12)" }}>
                     Manajemen scheduler, siaran pesan, alarm KBM, dan pengawasan sistem
@@ -2646,7 +2791,7 @@ export default function App() {
 
             {/* ═══ TAB: PERMISSIONS (Only SUPERADMIN) ═══ */}
             {activeTab === "permissions" && user?.role === "SUPERADMIN" && (
-              <div className="scroll-inertia animate-slide-up" style={{ flex: 1 }}>
+              <div style={{ flex: 1, overflowY: "auto" }}>
                 <div className="main-content-scrollable" style={{ paddingLeft: "max(var(--sp-20), env(safe-area-inset-left))", paddingRight: "max(var(--sp-20), env(safe-area-inset-right))" }}>
                   <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "var(--space-4)", marginBottom: "var(--space-16)" }}>
                     Atur hak akses peran serta kelola data akun guru.
@@ -2818,37 +2963,67 @@ export default function App() {
           </main>
 
           {/* ═══ 5. IOS SHEET: Detail Guru ═══ */}
-          <IOSSheet isOpen={!!teacherDetail} onClose={() => setTeacherDetail(null)}>
+          <IOSSheet isOpen={!!teacherDetail} onClose={() => setTeacherDetail(null)} className="ios-profile-sheet">
             {teacherDetail && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
-                {/* 1. Header Ringkas */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+                {/* 1. Header Ringkas (Apple Style) */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", color: "var(--color-text-secondary)" }}>
-                    <PersonOutlineOutlinedIcon style={{ fontSize: "1.25rem" }} />
-                    <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Profil Guru</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "rgba(235, 235, 245, 0.60)" }}>
+                    <PersonOutlineOutlinedIcon style={{ fontSize: "1.1rem" }} />
+                    <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Profil Guru</span>
                   </div>
-                  <button onClick={() => setTeacherDetail(null)} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--color-grouped-bg)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none" }}>
-                    <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }} />
+                  <button onClick={() => setTeacherDetail(null)} className="ios-profile-close-btn" aria-label="Tutup">
+                    <CloseOutlinedIcon style={{ fontSize: "1rem", color: "rgba(235, 235, 245, 0.60)" }} />
                   </button>
                 </div>
 
-                {/* 2. Nama & Kontak Utama */}
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-16)", paddingBottom: "var(--space-16)", borderBottom: "1px solid var(--color-separator)" }}>
-                  <IOSAvatar name={teacherDetail.name} />
+                {/* 2. Nama & Kontak Utama (Native iOS 14 Style) */}
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", paddingBottom: "20px", borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                  <div style={{
+                    width: "64px",
+                    height: "64px",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, #2563EB, #5B7CFA)",
+                    border: "1px solid #FFFFFF",
+                    boxShadow: "0 8px 25px rgba(37,99,235,.35)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "#FFFFFF",
+                    fontWeight: "700",
+                    fontSize: "22px",
+                    flexShrink: 0
+                  }}>
+                    {getInitials(teacherDetail.name)}
+                  </div>
                   <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                    <h2 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600, color: "var(--color-text-primary)", letterSpacing: "-0.2px", lineHeight: "1.25", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <h2 style={{
+                      fontSize: "28px",
+                      fontWeight: "700",
+                      color: "#FFFFFF",
+                      letterSpacing: "-0.5px",
+                      lineHeight: "1.15",
+                      margin: 0,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis"
+                    }}>
                       {teacherDetail.name}
                     </h2>
-                    <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
-                      <PhoneAndroidOutlinedIcon style={{ fontSize: "0.9rem" }} /> {teacherDetail.phone || "-"}
-                    </span>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "rgba(235, 235, 245, 0.60)", fontSize: "14px", marginTop: "4px" }}>
+                      <PhoneAndroidOutlinedIcon style={{ fontSize: "1rem", color: "rgba(235, 235, 245, 0.60)" }} />
+                      <span>{teacherDetail.phone || "-"}</span>
+                    </div>
                   </div>
                 </div>
 
                 {/* Optional Attendance Segmented Input */}
                 {teacherDetail.row && (
-                  <IOSSection title={`Input Absensi Jam ${selectedJam}`}>
-                    <div style={{ width: "100%", marginTop: "var(--space-4)" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                    <span style={{ fontSize: "13px", fontWeight: "600", color: "rgba(235, 235, 245, 0.60)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                      Input Absensi Jam {selectedJam}
+                    </span>
+                    <div style={{ width: "100%" }}>
                       <IOSSegmentedControl
                         segments={statusActionsList.map(s => ({ value: s.key, label: s.label, cls: s.cls }))}
                         selectedValue={teacherDetail.row.currentStatus}
@@ -2864,61 +3039,215 @@ export default function App() {
                         disabled={actionLoading}
                       />
                     </div>
-                  </IOSSection>
+                  </div>
                 )}
 
                 {/* 3. Ringkasan Kehadiran (Stat Chips) */}
-                <IOSSection title="Ringkasan Kehadiran Bulan Ini">
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "var(--space-8)", marginTop: "var(--space-4)" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <span style={{ fontSize: "20px", fontWeight: "600", color: "#FFFFFF" }}>
+                    Ringkasan Kehadiran Bulan Ini
+                  </span>
+                  
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", marginTop: "4px" }}>
                     {[
-                      { l: "Hadir", v: teacherDetail.stats.hadir, c: "hadir", key: "green" },
-                      { l: "Izin", v: teacherDetail.stats.izin, c: "izin", key: "yellow" },
-                      { l: "Sakit", v: teacherDetail.stats.sakit, c: "sakit", key: "orange" },
-                      { l: "Libur", v: teacherDetail.stats.libur, c: "libur", key: "purple" },
-                      { l: "Alpa", v: teacherDetail.stats.alpha, c: "alpha", key: "red" }
+                      { l: "Hadir", v: teacherDetail.stats.hadir, c: "hadir", color: "#30D158" },
+                      { l: "Izin", v: teacherDetail.stats.izin, c: "izin", color: "#FFD60A" },
+                      { l: "Sakit", v: teacherDetail.stats.sakit, c: "sakit", color: "#BF5AF2" },
+                      { l: "Libur", v: teacherDetail.stats.libur, c: "libur", color: "#0A84FF" },
+                      { l: "Alpa", v: teacherDetail.stats.alpha, c: "alpha", color: "#FF453A" }
                     ].map(s => (
-                      <div key={s.c} style={{ background: `var(--color--tint)`, border: "1px solid var(--color-separator)", borderRadius: "var(--radius-small)", padding: "10px 4px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                        <span style={{ fontSize: "var(--hig-fs-badge)", fontWeight: "600", color: "var(--color-text-secondary)", marginBottom: "4px" }}>{s.l}</span>
-                        <span className={`ios-badge ios-badge-${s.c}`} style={{ fontSize: "var(--hig-fs-subheadline)", padding: "2px 6px" }}>{s.v}</span>
+                      <div key={s.c} style={{
+                        background: "rgba(255, 255, 255, 0.04)",
+                        border: "1px solid rgba(255, 255, 255, 0.05)",
+                        borderRadius: "18px",
+                        aspectRatio: "1 / 1",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        boxSizing: "border-box",
+                        padding: "4px"
+                      }}>
+                        <span style={{ fontSize: "11px", fontWeight: "600", color: "rgba(235, 235, 245, 0.60)", marginBottom: "2px", textAlign: "center" }}>
+                          {s.l}
+                        </span>
+                        <span style={{ fontSize: "22px", fontWeight: "700", color: s.color, textAlign: "center", lineHeight: "1.1" }}>
+                          {s.v}
+                        </span>
                       </div>
                     ))}
                   </div>
 
-                  {/* 4. Informasi Kewajiban */}
-                  <div style={{ marginTop: "var(--space-12)", padding: "10px var(--space-16)", background: "var(--color-surface)", border: "1px solid var(--color-separator)", borderRadius: "var(--radius-small)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", fontWeight: 500 }}>Beban Kerja Wajib</span>
-                    <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-primary)", fontWeight: 600 }}>
-                      {teacherDetail.stats.jtm_7_hari} JTM/Minggu · {teacherDetail.stats.jadwal_wajib} JTM/Bulan
-                    </span>
+                  {/* 4. Informasi Kewajiban (iOS Row Style) */}
+                  <div style={{
+                    height: "72px",
+                    background: "rgba(255, 255, 255, 0.04)",
+                    border: "1px solid rgba(255, 255, 255, 0.05)",
+                    borderRadius: "20px",
+                    padding: "0 16px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginTop: "8px",
+                    boxSizing: "border-box"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{
+                        width: "36px",
+                        height: "36px",
+                        borderRadius: "10px",
+                        background: "rgba(10, 132, 255, 0.15)",
+                        color: "#0A84FF",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}>
+                        <SchoolOutlinedIcon style={{ fontSize: "1.2rem" }} />
+                      </div>
+                      <span style={{ fontSize: "15px", fontWeight: "500", color: "#FFFFFF" }}>
+                        Beban Kerja Wajib
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <span style={{ fontSize: "13px", color: "rgba(235, 235, 245, 0.60)", fontWeight: "500" }}>
+                        {teacherDetail.stats.jtm_7_hari} JTM/Mg · {teacherDetail.stats.jadwal_wajib} JTM/Blnd
+                      </span>
+                      <ChevronRightOutlinedIcon style={{ fontSize: "1.1rem", color: "rgba(255, 255, 255, 0.2)" }} />
+                    </div>
                   </div>
-                </IOSSection>
+                </div>
 
-                {/* 5. Log Terakhir */}
-                <IOSSection title="Log Kehadiran Terbaru (Maks. 10)">
+                {/* 5. Log Terakhir (Grouped Apple List Style) */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <span style={{ fontSize: "13px", fontWeight: "600", color: "rgba(235, 235, 245, 0.60)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    Log Kehadiran Terbaru (Maks. 10)
+                  </span>
+                  
                   {teacherDetail.logs.length === 0 ? (
-                    <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-separator)", borderRadius: "var(--radius-small)", padding: "16px 0", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)" }}>
+                    <div style={{
+                      background: "rgba(255, 255, 255, 0.04)",
+                      border: "1px solid rgba(255, 255, 255, 0.05)",
+                      borderRadius: "22px",
+                      padding: "24px 0",
+                      textAlign: "center",
+                      color: "rgba(235, 235, 245, 0.60)",
+                      fontSize: "14px"
+                    }}>
                       Belum ada log absensi tercatat.
                     </div>
                   ) : (
-                    <div className="ios-list scroll-inertia" style={{ maxHeight: "180px", overflowY: "auto", border: "1px solid var(--color-separator)" }}>
-                      {teacherDetail.logs.map((log, i) => (
-                        <IOSListRow key={i} rightContent={<IOSBadge status={(log.status || "").toUpperCase()} />}>
-                          <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                            <span style={{ color: "var(--color-text-primary)", fontSize: "var(--hig-fs-footnote)", fontWeight: 600 }}>
-                              {log.tanggal} <span style={{ color: "var(--color-text-secondary)", fontWeight: 400 }}>({capitalize(log.hari)})</span>
-                            </span>
-                            <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)" }}>
-                              Jam {log.jam} · Kelas {log.kelas || "-"} · {log.mapel || "-"}
-                            </span>
-                          </div>
-                        </IOSListRow>
-                      ))}
+                    <div className="ios-profile-logs-container" style={{
+                      background: "rgba(255, 255, 255, 0.04)",
+                      borderRadius: "22px",
+                      border: "1px solid rgba(255, 255, 255, 0.05)",
+                      overflow: "hidden",
+                      boxSizing: "border-box"
+                    }}>
+                      <div style={{ maxHeight: "220px", overflowY: "auto" }}>
+                        {teacherDetail.logs.map((log, i) => {
+                          const status = (log.status || "").toUpperCase();
+                          let badgeColor = "#30D158";
+                          let badgeBg = "rgba(48, 209, 88, 0.15)";
+                          let glowColor = "rgba(48, 209, 88, 0.3)";
+                          if (status === "IZIN") {
+                            badgeColor = "#FFD60A";
+                            badgeBg = "rgba(255, 214, 10, 0.15)";
+                            glowColor = "rgba(255, 214, 10, 0.3)";
+                          } else if (status === "SAKIT") {
+                            badgeColor = "#BF5AF2";
+                            badgeBg = "rgba(191, 90, 242, 0.15)";
+                            glowColor = "rgba(191, 90, 242, 0.3)";
+                          } else if (status === "LIBUR") {
+                            badgeColor = "#0A84FF";
+                            badgeBg = "rgba(10, 132, 255, 0.15)";
+                            glowColor = "rgba(10, 132, 255, 0.3)";
+                          } else if (status === "ALPHA") {
+                            badgeColor = "#FF453A";
+                            badgeBg = "rgba(255, 69, 58, 0.15)";
+                            glowColor = "rgba(255, 69, 58, 0.3)";
+                          } else if (status === "BELUM") {
+                            badgeColor = "rgba(235, 235, 245, 0.60)";
+                            badgeBg = "rgba(255, 255, 255, 0.08)";
+                            glowColor = "rgba(255, 255, 255, 0.1)";
+                          }
+
+                          return (
+                            <div key={i} className="ios-profile-log-row" style={{
+                              height: "72px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              padding: "0 16px",
+                              boxSizing: "border-box",
+                              borderBottom: i < teacherDetail.logs.length - 1 ? "1px solid rgba(255, 255, 255, 0.05)" : "none",
+                              transition: "background 200ms ease"
+                            }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0, flex: 1 }}>
+                                <div style={{
+                                  width: "36px",
+                                  height: "36px",
+                                  borderRadius: "50%",
+                                  background: "rgba(255, 255, 255, 0.05)",
+                                  color: "rgba(255, 255, 255, 0.4)",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center"
+                                }}>
+                                  <CalendarMonthOutlinedIcon style={{ fontSize: "1.1rem" }} />
+                                </div>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
+                                  <span style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>
+                                    {log.tanggal} <span style={{ color: "rgba(235, 235, 245, 0.60)", fontWeight: "400", fontSize: "13px" }}>({capitalize(log.hari)})</span>
+                                  </span>
+                                  <span style={{ color: "rgba(235, 235, 245, 0.60)", fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                    Jam {log.jam} · Kelas {log.kelas || "-"} · {log.mapel || "-"}
+                                  </span>
+                                </div>
+                              </div>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                <span style={{
+                                  color: badgeColor,
+                                  background: badgeBg,
+                                  boxShadow: `0 2px 8px ${glowColor}`,
+                                  padding: "6px 12px",
+                                  borderRadius: "999px",
+                                  fontSize: "11px",
+                                  fontWeight: "700",
+                                  textTransform: "uppercase",
+                                  letterSpacing: "0.5px"
+                                }}>
+                                  {status}
+                                </span>
+                                <ChevronRightOutlinedIcon style={{ fontSize: "1rem", color: "rgba(255, 255, 255, 0.15)" }} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
-                </IOSSection>
+                </div>
+
+                {/* 6. Info Banner (Bottom Pill) */}
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  background: "rgba(255, 255, 255, 0.05)",
+                  padding: "10px 16px",
+                  borderRadius: "999px",
+                  boxSizing: "border-box"
+                }}>
+                  <InfoOutlinedIcon style={{ fontSize: "1.1rem", color: "#0A84FF" }} />
+                  <span style={{ fontSize: "12px", color: "rgba(235, 235, 245, 0.60)", fontWeight: "500" }}>
+                    Data kehadiran diperbarui secara real-time
+                  </span>
+                </div>
               </div>
             )}
           </IOSSheet>
+
 
           {/* ═══ 6. IOS ALERT: Konfirmasi Koreksi ═══ */}
           <IOSAlert isOpen={!!correctionTarget} title="Koreksi Absensi" description={
@@ -3076,7 +3405,7 @@ export default function App() {
                 />
               </div>
 
-              <div className="ios-list scroll-inertia" style={{ flex: 1, minHeight: "200px", overflowY: "auto", overflowX: "hidden", border: "0.5px solid var(--color-separator)", borderRadius: "var(--radius-medium)", boxSizing: "border-box", width: "100%" }}>
+              <div className="ios-list" style={{ flex: 1, minHeight: "200px", overflowY: "auto", overflowX: "hidden", border: "0.5px solid var(--color-separator)", borderRadius: "var(--radius-medium)", boxSizing: "border-box", width: "100%" }}>
                 {(() => {
                   const filtered = contacts.filter(c => {
                     const name = (c.nama_guru || c.nama || "").toLowerCase();

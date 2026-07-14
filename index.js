@@ -86,6 +86,42 @@ async function getSheetsClient() {
   }
 }
 
+// Mutex class for queuing concurrent write operations on Google Sheets
+class Mutex {
+  constructor() {
+    this.queue = [];
+    this.locked = false;
+  }
+
+  async run(fn) {
+    return new Promise((resolve, reject) => {
+      this.queue.push(async () => {
+        try {
+          const res = await fn();
+          resolve(res);
+        } catch (err) {
+          reject(err);
+        }
+      });
+      this.next();
+    });
+  }
+
+  async next() {
+    if (this.locked || this.queue.length === 0) return;
+    this.locked = true;
+    const task = this.queue.shift();
+    try {
+      await task();
+    } finally {
+      this.locked = false;
+      this.next();
+    }
+  }
+}
+
+const sheetsMutex = new Mutex();
+
 // Read a range from a sheet (sheetName!A:Z), map header -> object, trim keys
 async function ambilSheetRange(sheetName, range = "A:Z") {
   const client = await getSheetsClient();
@@ -146,30 +182,32 @@ export async function ambilAbsensiHari(tanggal) {
   return data.filter((r) => (r.tanggal || "").trim() === tanggal.trim());
 }
 export async function simpanRekap(row) {
-  const client = await getSheetsClient();
-  const values = [
-    [
-      row.tanggal || "",
-      row.hari || "",
-      row.jam || "",
-      row.nama_guru || "",
-      row.kelas || "",
-      row.mapel || "",
-      row.status || "",
-    ],
-  ];
-  try {
-    await client.spreadsheets.values.append({
-      spreadsheetId: GOOGLE_SHEET_ID,
-      range: "rekap!A:G",
-      valueInputOption: "RAW",
-      resource: { values },
-    });
-    global.cacheRekapSemua.push({ ...row });
-  } catch (err) {
-    console.error("❌ Gagal menyimpan rekap:", err.message || err);
-    throw err;
-  }
+  return sheetsMutex.run(async () => {
+    const client = await getSheetsClient();
+    const values = [
+      [
+        row.tanggal || "",
+        row.hari || "",
+        row.jam || "",
+        row.nama_guru || "",
+        row.kelas || "",
+        row.mapel || "",
+        row.status || "",
+      ],
+    ];
+    try {
+      await client.spreadsheets.values.append({
+        spreadsheetId: GOOGLE_SHEET_ID,
+        range: "rekap!A:G",
+        valueInputOption: "RAW",
+        resource: { values },
+      });
+      global.cacheRekapSemua.push({ ...row });
+    } catch (err) {
+      console.error("❌ Gagal menyimpan rekap:", err.message || err);
+      throw err;
+    }
+  });
 }
 export async function ambilRekapGuru(namaGuru, bulanYYYYMM = null) {
   const data = global.cacheRekapSemua || [];
@@ -198,7 +236,7 @@ export async function ambilTotalJadwal(nama) {
     .length;
 }
 
-export async function syncBulananSheet(bulanIndoOrDate, tahun = null) {
+async function _syncBulananSheet(bulanIndoOrDate, tahun = null) {
   const client = await getSheetsClient();
   let monthName = "";
   let monthNum = "";
@@ -329,7 +367,15 @@ export async function syncBulananSheet(bulanIndoOrDate, tahun = null) {
         }
       });
 
-      rowData.push(H_total, I_total, S_total, L_total, A_total);
+      const rekapTotal = totalJadwal - (I_total + S_total + L_total + A_total);
+      rowData.push(
+        H_total,
+        I_total,
+        S_total,
+        L_total,
+        A_total,
+        rekapTotal
+      );
       dataRows.push(rowData);
     });
 
@@ -358,20 +404,43 @@ export async function syncBulananSheet(bulanIndoOrDate, tahun = null) {
     });
 
     // 4. Update values
-    const lastRow = 3 + dataRows.length;
-
     const headers1 = ["NO", "NAMA", "JTM 7 HARI", "JADWAL"];
     validDates.forEach(d => { headers1.push(d.label, "", ""); });
-    headers1.push("HADIR", "IZIN", "SAKIT", "LIBUR", "ALPHA");
+    headers1.push("HADIR", "IZIN", "SAKIT", "LIBUR", "ALPHA", "REKAP");
 
-    const sumRow = ["", "TOTAL", `=SUM(C4:C${lastRow})`, `=SUM(D4:D${lastRow})`];
+    let totalJTM = 0;
+    let totalJadwalAll = 0;
+    let totalHadirAll = 0;
+    let totalIzinAll = 0;
+    let totalSakitAll = 0;
+    let totalLiburAll = 0;
+    let totalAlphaAll = 0;
+    let totalRekapAll = 0;
+
+    dataRows.forEach(row => {
+      totalJTM += row[2] || 0;
+      totalJadwalAll += row[3] || 0;
+      const len = row.length;
+      totalHadirAll += row[len - 6] || 0;
+      totalIzinAll += row[len - 5] || 0;
+      totalSakitAll += row[len - 4] || 0;
+      totalLiburAll += row[len - 3] || 0;
+      totalAlphaAll += row[len - 2] || 0;
+      totalRekapAll += row[len - 1] || 0;
+    });
+
+    const sumRow = ["", "TOTAL", totalJTM, totalJadwalAll];
     for (let i = 0; i < validDates.length * 3; i++) {
       sumRow.push("");
     }
-    for (let i = 0; i < 5; i++) {
-      const cLetter = colLetter(4 + validDates.length * 3 + i);
-      sumRow.push(`=SUM(${cLetter}4:${cLetter}${lastRow})`);
-    }
+    sumRow.push(
+      totalHadirAll,
+      totalIzinAll,
+      totalSakitAll,
+      totalLiburAll,
+      totalAlphaAll,
+      totalRekapAll
+    );
 
     const values = [
       [`REKAPITULASI ABSENSI GURU - BULAN ${sheetName.toUpperCase()} ${year}`],
@@ -390,7 +459,7 @@ export async function syncBulananSheet(bulanIndoOrDate, tahun = null) {
 
     // 5. Apply styles
     const stylingRequests = [];
-    const totalCols = 4 + validDates.length * 3 + 5;
+    const totalCols = 4 + validDates.length * 3 + 6;
 
     // Merge Main Title
     stylingRequests.push({
@@ -612,11 +681,15 @@ export async function syncBulananSheet(bulanIndoOrDate, tahun = null) {
   }
 }
 
+// syncBulananSheet Mutex Wrapper
+export async function syncBulananSheet(bulanIndoOrDate, tahun = null) {
+  return sheetsMutex.run(() => _syncBulananSheet(bulanIndoOrDate, tahun));
+}
+
 export async function downloadDanKirimRekap(msg, format, monthName, sheetId, year) {
   try {
     const client = await getSheetsClient();
     const auth = client.context._options.auth;
-    const tokenHeaders = await auth.getRequestHeaders();
 
     let exportUrl = "";
     let mimeType = "";
@@ -633,18 +706,25 @@ export async function downloadDanKirimRekap(msg, format, monthName, sheetId, yea
       fileExtension = "pdf";
     }
 
-    console.log(`📥 Mengunduh file dari: ${exportUrl}`);
-
-    const res = await fetch(exportUrl, {
-      headers: tokenHeaders
-    });
-
-    if (!res.ok) {
-      throw new Error(`Google API returned status ${res.status}: ${res.statusText}`);
+    // Paksa recalculation Google Sheets sebelum mendownload
+    try {
+      await client.spreadsheets.values.get({
+        spreadsheetId: GOOGLE_SHEET_ID,
+        range: `${monthName}!A1:B2`
+      });
+      console.log(`[BOT] Pemicu recalculation rumus berhasil untuk sheet ${monthName}`);
+    } catch (calcErr) {
+      console.warn(`[BOT] Gagal memicu recalculation rumus:`, calcErr.message);
     }
 
-    const arrayBuffer = await res.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    console.log(`📥 Mengunduh file dari: ${exportUrl}`);
+
+    const res = await auth.request({
+      url: exportUrl,
+      responseType: "arraybuffer"
+    });
+
+    const buffer = Buffer.from(res.data);
 
     if (buffer.length === 0) {
       throw new Error("Berkas yang diunduh kosong.");
@@ -1004,46 +1084,47 @@ async function handleKoreksi(msg, nomor, kode) {
 }
 
 async function executeCorrection(msg) {
-  try {
-    const from = msg.author || msg.from;
-    const session = global.pendingAction[from];
-    if (!session || session.type !== 'KOREKSI') return;
-    const data = session.data;
+  return sheetsMutex.run(async () => {
+    try {
+      const from = msg.author || msg.from;
+      const session = global.pendingAction[from];
+      if (!session || session.type !== 'KOREKSI') return;
+      const data = session.data;
 
-    const rowNumber = data.recordIndex + 2; // Index data 0 -> Baris 2 di Google Sheets
-    const clientSheets = await getSheetsClient();
+      const rowNumber = data.recordIndex + 2; // Index data 0 -> Baris 2 di Google Sheets
+      const clientSheets = await getSheetsClient();
 
-    // 1. Update status di Google Sheets
-    await clientSheets.spreadsheets.values.update({
-      spreadsheetId: GOOGLE_SHEET_ID,
-      range: `rekap!G${rowNumber}`,
-      valueInputOption: "RAW",
-      resource: {
-        values: [[data.newStatus]]
-      }
-    });
+      // 1. Update status di Google Sheets
+      await clientSheets.spreadsheets.values.update({
+        spreadsheetId: GOOGLE_SHEET_ID,
+        range: `rekap!G${rowNumber}`,
+        valueInputOption: "RAW",
+        resource: {
+          values: [[data.newStatus]]
+        }
+      });
 
-    // 2. Update status di cache
-    global.cacheRekapSemua[data.recordIndex].status = data.newStatus;
+      // 2. Update status di cache
+      global.cacheRekapSemua[data.recordIndex].status = data.newStatus;
 
-    // 3. Balas ke operator
-    await msg.reply(
-      `✅ *Koreksi berhasil*\n\n` +
-      `${data.teacherName}\n\n` +
-      `${data.oldStatus} → ${data.newStatus}`
-    );
+      // 3. Balas ke operator
+      await msg.reply(
+        `✅ *Koreksi berhasil*\n\n` +
+        `${data.teacherName}\n\n` +
+        `${data.oldStatus} → ${data.newStatus}`
+      );
 
-    // 4. Kirim notifikasi ke guru
-    const nomorGuru = getNomorWa(data.guru.nama_guru || "");
-    if (nomorGuru.length > 8) {
-      const chatId = `${nomorGuru}@c.us`;
-      const statusLama = data.oldStatus.toUpperCase();
-      const statusBaru = data.newStatus.toUpperCase();
+      // 4. Kirim notifikasi ke guru
+      const nomorGuru = getNomorWa(data.guru.nama_guru || "");
+      if (nomorGuru.length > 8) {
+        const chatId = `${nomorGuru}@c.us`;
+        const statusLama = data.oldStatus.toUpperCase();
+        const statusBaru = data.newStatus.toUpperCase();
 
-      if (["ALPHA", "IZIN", "SAKIT"].includes(statusLama) && statusBaru === "HADIR") {
-        // Kirim Notifikasi Koreksi
-        const lj = global.lastJadwal || {};
-        const pesanKoreksi = `📋 *KOREKSI ABSENSI*
+        if (["ALPHA", "IZIN", "SAKIT"].includes(statusLama) && statusBaru === "HADIR") {
+          // Kirim Notifikasi Koreksi
+          const lj = global.lastJadwal || {};
+          const pesanKoreksi = `📋 *KOREKSI ABSENSI*
 Assalamu’alaikum Wr. Wb. P. ${data.teacherName}
 Pengawas memperbarui status absensi Anda:
 
@@ -1058,13 +1139,13 @@ Pengawas memperbarui status absensi Anda:
 
 Terima kasih 🙏
 Wassalamu’alaikum Wr. Wb.`;
-        safeSendMessage(chatId, pesanKoreksi).catch((e) =>
-          console.log("Gagal notif koreksi:", e.message)
-        );
-      } else if (statusLama === "HADIR" && ["ALPHA", "IZIN", "SAKIT"].includes(statusBaru)) {
-        // Kirim Notifikasi Standar
-        const lj = global.lastJadwal || {};
-        const pesanStandar = `Assalamu’alaikum Wr. Wb P. ${data.teacherName}
+          safeSendMessage(chatId, pesanKoreksi).catch((e) =>
+            console.log("Gagal notif koreksi:", e.message)
+          );
+        } else if (statusLama === "HADIR" && ["ALPHA", "IZIN", "SAKIT"].includes(statusBaru)) {
+          // Kirim Notifikasi Standar
+          const lj = global.lastJadwal || {};
+          const pesanStandar = `Assalamu’alaikum Wr. Wb P. ${data.teacherName}
 Pengawas mencatat Anda: ${statusBaru}
 * Jam : ${data.jam}
 * Kelas: ${data.guru.kelas || ""}
@@ -1075,18 +1156,19 @@ Pengawas mencatat Anda: ${statusBaru}
 
 Terima kasih 🙏
 Wassalamu’alaikum Wr. Wb`;
-        safeSendMessage(chatId, pesanStandar).catch((e) =>
-          console.log("Gagal notif standar koreksi:", e.message)
-        );
+          safeSendMessage(chatId, pesanStandar).catch((e) =>
+            console.log("Gagal notif standar koreksi:", e.message)
+          );
+        }
       }
-    }
 
-    // Reset pending correction state
-    delete global.pendingAction[from];
-  } catch (err) {
-    console.error("Error executeCorrection:", err);
-    await msg.reply(`⚠️ Gagal menyimpan koreksi: ${err.message}`);
-  }
+      // Reset pending correction state
+      delete global.pendingAction[from];
+    } catch (err) {
+      console.error("Error executeCorrection:", err);
+      await msg.reply(`⚠️ Gagal menyimpan koreksi: ${err.message}`);
+    }
+  });
 }
 
 /* =========================
@@ -1120,7 +1202,7 @@ const client = new Client({
     dataPath: "./session_data",
   }),
   puppeteer: {
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || "C:\\Users\\1\\.cache\\puppeteer\\chrome\\win64-121.0.6167.85\\chrome-win64\\chrome.exe",
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
     headless: true,
     args: [
       "--no-sandbox",
@@ -1135,37 +1217,39 @@ const client = new Client({
 client.on("qr", (qr) => qrcode.generate(qr, { small: true }));
 // --- Heartbeat & Setting Helpers ---
 async function updateSettingKeyValue(key, value) {
-  try {
-    const clientSheets = await getSheetsClient();
-    const res = await clientSheets.spreadsheets.values.get({
-      spreadsheetId: GOOGLE_SHEET_ID,
-      range: "Setting!A1:B20",
-    });
-    const rows = res.data.values || [];
-    const rowIndex = rows.findIndex(row => String(row[0] || "").trim() === key);
+  return sheetsMutex.run(async () => {
+    try {
+      const clientSheets = await getSheetsClient();
+      const res = await clientSheets.spreadsheets.values.get({
+        spreadsheetId: GOOGLE_SHEET_ID,
+        range: "Setting!A1:B20",
+      });
+      const rows = res.data.values || [];
+      const rowIndex = rows.findIndex(row => String(row[0] || "").trim() === key);
 
-    if (rowIndex !== -1) {
-      await clientSheets.spreadsheets.values.update({
-        spreadsheetId: GOOGLE_SHEET_ID,
-        range: `Setting!B${rowIndex + 1}`,
-        valueInputOption: "USER_ENTERED",
-        resource: {
-          values: [[value]]
-        }
-      });
-    } else {
-      await clientSheets.spreadsheets.values.append({
-        spreadsheetId: GOOGLE_SHEET_ID,
-        range: "Setting!A:B",
-        valueInputOption: "USER_ENTERED",
-        resource: {
-          values: [[key, value]]
-        }
-      });
+      if (rowIndex !== -1) {
+        await clientSheets.spreadsheets.values.update({
+          spreadsheetId: GOOGLE_SHEET_ID,
+          range: `Setting!B${rowIndex + 1}`,
+          valueInputOption: "USER_ENTERED",
+          resource: {
+            values: [[value]]
+          }
+        });
+      } else {
+        await clientSheets.spreadsheets.values.append({
+          spreadsheetId: GOOGLE_SHEET_ID,
+          range: "Setting!A:B",
+          valueInputOption: "USER_ENTERED",
+          resource: {
+            values: [[key, value]]
+          }
+        });
+      }
+    } catch (err) {
+      console.error(`❌ Gagal update setting ${key}:`, err.message || err);
     }
-  } catch (err) {
-    console.error(`❌ Gagal update setting ${key}:`, err.message || err);
-  }
+  });
 }
 
 async function kirimHeartbeat() {
@@ -1182,15 +1266,27 @@ client.on("ready", () => {
   heartbeatInterval = setInterval(kirimHeartbeat, 30000);
 });
 
-client.on("disconnected", (reason) => {
+client.on("disconnected", async (reason) => {
   console.log("❌ WhatsApp Client Terputus:", reason);
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
   }
+  console.log("🔄 Mencoba menginisialisasi ulang WhatsApp Client dalam 10 detik...");
+  setTimeout(async () => {
+    try {
+      await client.destroy();
+    } catch (e) {
+      console.error("⚠️ Gagal men-destroy client:", e.message);
+    }
+    client.initialize();
+  }, 10000);
 });
 client.on("authenticated", () => console.log("✅ WhatsApp Terautentikasi!"));
-client.on("auth_failure", (msg) => console.error("❌ Gagal Autentikasi:", msg));
+client.on("auth_failure", (msg) => {
+  console.error("❌ Gagal Autentikasi:", msg);
+  process.exit(1);
+});
 client.on("loading_screen", (percent, message) => {
   console.log(`⏳ Loading WhatsApp: ${percent}% - ${message}`);
 });
@@ -2286,16 +2382,18 @@ async function initTaskQueuePolling() {
     const sheets = metadata.data.sheets || [];
     let sheetExists = sheets.some(s => s.properties.title === 'Task_Queue');
     if (!sheetExists) {
-      await client.spreadsheets.batchUpdate({
-        spreadsheetId: GOOGLE_SHEET_ID,
-        resource: { requests: [{ addSheet: { properties: { title: 'Task_Queue' } } }] }
-      });
-      // Add Headers
-      await client.spreadsheets.values.update({
-        spreadsheetId: GOOGLE_SHEET_ID,
-        range: `Task_Queue!A1`,
-        valueInputOption: "USER_ENTERED",
-        resource: { values: [["ID", "Task_Type", "Payload", "Status", "Timestamp", "Result_Log"]] }
+      await sheetsMutex.run(async () => {
+        await client.spreadsheets.batchUpdate({
+          spreadsheetId: GOOGLE_SHEET_ID,
+          resource: { requests: [{ addSheet: { properties: { title: 'Task_Queue' } } }] }
+        });
+        // Add Headers
+        await client.spreadsheets.values.update({
+          spreadsheetId: GOOGLE_SHEET_ID,
+          range: `Task_Queue!A1`,
+          valueInputOption: "USER_ENTERED",
+          resource: { values: [["ID", "Task_Type", "Payload", "Status", "Timestamp", "Result_Log"]] }
+        });
       });
       console.log("✅ Sheet Task_Queue berhasil dibuat.");
     }
@@ -2318,12 +2416,12 @@ async function initTaskQueuePolling() {
           const rowIndex = i + 2; // +1 header, +1 for 0-index
 
           // Mark as PROCESSING
-          await clientSheets.spreadsheets.values.update({
+          await sheetsMutex.run(() => clientSheets.spreadsheets.values.update({
             spreadsheetId: GOOGLE_SHEET_ID,
             range: `Task_Queue!D${rowIndex}`,
             valueInputOption: "USER_ENTERED",
             requestBody: { values: [["PROCESSING"]] }
-          });
+          }));
 
           try {
             const tType = String(task.task_type).toUpperCase();
@@ -2375,23 +2473,23 @@ async function initTaskQueuePolling() {
             }
 
             // Mark as DONE
-            await clientSheets.spreadsheets.values.update({
+            await sheetsMutex.run(() => clientSheets.spreadsheets.values.update({
               spreadsheetId: GOOGLE_SHEET_ID,
               range: `Task_Queue!D${rowIndex}:F${rowIndex}`,
               valueInputOption: "USER_ENTERED",
               requestBody: { values: [["DONE", new Date().toISOString(), "Berhasil dieksekusi"]] }
-            });
+            }));
             console.log(`✅ Task ${task.id} (${tType}) selesai.`);
 
           } catch (execErr) {
             console.error(`❌ Gagal mengeksekusi task ID: ${task.id}`, execErr.message);
             // Mark as FAILED
-            await clientSheets.spreadsheets.values.update({
+            await sheetsMutex.run(() => clientSheets.spreadsheets.values.update({
               spreadsheetId: GOOGLE_SHEET_ID,
               range: `Task_Queue!D${rowIndex}:F${rowIndex}`,
               valueInputOption: "USER_ENTERED",
               requestBody: { values: [["FAILED", new Date().toISOString(), execErr.message || "Gagal dieksekusi"]] }
-            });
+            }));
           }
         }
       }

@@ -206,4 +206,25 @@ export class GoogleSheetsHelper {
       throw error;
     }
   }
+
+  /**
+   * Mengambil daftar sheet dalam spreadsheet
+   */
+  async getSheetsList() {
+    try {
+      const headers = await this.getHeaders();
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${this.sheetId}?fields=sheets.properties`;
+      
+      const response = await fetch(url, { method: "GET", headers });
+      if (!response.ok) {
+        throw new Error(`Error fetching spreadsheet metadata: ${await response.text()}`);
+      }
+
+      const data = await response.json();
+      return data.sheets || [];
+    } catch (error) {
+      console.error("[GoogleSheetsHelper] getSheetsList Error:", error.message);
+      throw error;
+    }
+  }
 }

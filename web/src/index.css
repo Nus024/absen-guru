@@ -381,26 +381,7 @@ h6 {
   font-family: "SF Pro Text", var(--font);
 }
 
-/* Scrollable regions */
-.scroll-inertia {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
 
-/* Scrollbar styling */
-.scroll-inertia::-webkit-scrollbar {
-  width: 4px;
-}
-
-.scroll-inertia::-webkit-scrollbar-thumb {
-  background-color: var(--separator-opaque);
-  border-radius: var(--r-pill);
-}
-
-.scroll-inertia::-webkit-scrollbar-track {
-  background: transparent;
-}
 
 /* Focus visible */
 :focus-visible {
@@ -952,13 +933,13 @@ textarea.ios-input {
   width: 100%;
   max-width: 340px;
   /* Kept compact to fit smaller screens */
-  background: var(--alert-bg);
-  backdrop-filter: saturate(180%) blur(10px);
-  -webkit-backdrop-filter: saturate(180%) blur(10px);
-  border: 1px solid var(--border);
+  background: rgba(32, 34, 40, 0.45) !important;
+  backdrop-filter: saturate(180%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
   border-radius: 20px;
   /* 20pt corner radius */
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.20);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4) !important;
   padding: 10px var(--sp-12) var(--sp-12);
   /* Balanced padding */
   display: flex;
@@ -2237,9 +2218,6 @@ tbody tr {
   }
 }
 
-.animate-slide-up {
-  animation: slide-up var(--dur-lg) var(--ease-spring) both;
-}
 
 /* ═══════════════════════════════════════════════════════════════
    6. RESPONSIVE BREAKPOINTS
@@ -3339,4 +3317,154 @@ tbody tr {
 .ios-info-btn:active, .info-btn:active, .info-button:active {
   background: rgba(10, 132, 255, 0.1);
   transform: scale(0.95);
+}
+
+/* ═══════════════════════════════════════════
+   APPLE iOS 14 REDESIGN — PROFIL GURU SHEET
+   ═══════════════════════════════════════════ */
+
+/* Modal Overlays & Animations */
+@keyframes ios-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ios-sheet-spring {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.ios-profile-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45) !important;
+  z-index: var(--z-sheet) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  animation: ios-fade-in 300ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.ios-profile-sheet {
+  width: 100% !important;
+  max-width: 560px !important;
+  background: rgba(28, 28, 30, 0.82) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  border-radius: 28px 28px 0 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-bottom: none !important;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35) !important;
+  padding: 24px 24px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+  animation: sheet-in 300ms cubic-bezier(0.25, 1, 0.5, 1) !important;
+  max-height: 88vh !important;
+  outline: none !important;
+  overflow: hidden !important;
+}
+
+
+.ios-profile-sheet .ios-sheet-grabber {
+  width: 48px !important;
+  height: 5px !important;
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-radius: 999px !important;
+  align-self: center !important;
+  margin-top: 0 !important;
+  margin-bottom: 16px !important;
+  opacity: 1 !important;
+  flex-shrink: 0 !important;
+}
+
+/* Close Button Animation */
+.ios-profile-close-btn {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  border: none;
+  transition: background 250ms ease-out, transform 180ms ease-out;
+}
+
+.ios-profile-close-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.ios-profile-close-btn:active {
+  transform: scale(0.92);
+}
+
+/* Log rows */
+.ios-profile-log-row {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  box-sizing: border-box;
+  transition: background 200ms ease;
+}
+
+.ios-profile-log-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Segmented Control Overrides in Profil Guru Modal */
+.ios-profile-sheet .ios-segmented-control {
+  display: flex !important;
+  width: 100% !important;
+  height: 54px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-radius: 16px !important;
+  padding: 4px !important;
+  border: none !important;
+  align-items: stretch !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+}
+
+.ios-profile-sheet .ios-segmented-segment {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 12px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: rgba(235, 235, 245, 0.60) !important;
+  cursor: pointer !important;
+  transition: all 250ms ease-out !important;
+  height: 100% !important;
+  padding: 0 !important;
+}
+
+/* Force selected segment text to white and background to blue gradient */
+.ios-profile-sheet .ios-segmented-segment.selected,
+.ios-profile-sheet .ios-segmented-segment.selected.hadir,
+.ios-profile-sheet .ios-segmented-segment.selected.izin,
+.ios-profile-sheet .ios-segmented-segment.selected.sakit,
+.ios-profile-sheet .ios-segmented-segment.selected.alpha,
+.ios-profile-sheet .ios-segmented-segment.selected.libur {
+  background: linear-gradient(135deg, #0A84FF, #3D9BFF) !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3) !important;
 }

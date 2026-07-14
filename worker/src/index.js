@@ -37,6 +37,223 @@ function getWeekdayCount(year, month) {
 	return counts;
 }
 
+async function syncBulananOnline(sheets, monthName, year) {
+	const INDO_MONTHS_MAP = {
+		januari: "01", februari: "02", maret: "03", april: "04", mei: "05", juni: "06",
+		juli: "07", agustus: "08", september: "09", oktober: "10", november: "11", desember: "12"
+	};
+
+	const cleanMonth = String(monthName).toLowerCase().trim();
+	const monthNum = INDO_MONTHS_MAP[cleanMonth];
+	const targetSheetName = monthName.trim();
+
+	if (!monthNum) {
+		throw new Error(`Bulan tidak valid: ${monthName}`);
+	}
+
+	const bulanYYYYMM = `${year}-${monthNum}`;
+
+	const [jadwalData, rekapData] = await Promise.all([
+		sheets.readData('Jadwal!A:E'),
+		sheets.readData('rekap!A:G')
+	]);
+
+	const jRows = jadwalData.slice(1);
+	const lRows = rekapData.slice(1);
+
+	const jHeader = (jadwalData[0] || []).map(h => String(h || "").trim().toLowerCase().replace(/\s+/g, "_"));
+	const idxNama = jHeader.indexOf('nama_guru') !== -1 ? jHeader.indexOf('nama_guru') : jHeader.indexOf('nama');
+	const idxHari = jHeader.indexOf('hari');
+	const idxJam = jHeader.indexOf('jam');
+
+	if (idxNama === -1 || idxHari === -1 || idxJam === -1) {
+		throw new Error("Kolom Jadwal tidak lengkap (wajib ada nama_guru, hari, jam)");
+	}
+
+	const rHeader = (rekapData[0] || []).map(h => String(h || "").trim().toLowerCase().replace(/\s+/g, "_"));
+	const idxTanggal = rHeader.indexOf('tanggal');
+	const idxNamaRekap = rHeader.indexOf('nama_guru') !== -1 ? rHeader.indexOf('nama_guru') : rHeader.indexOf('nama');
+	const idxStatus = rHeader.indexOf('status');
+	const idxJamRekap = rHeader.indexOf('jam');
+
+	if (idxTanggal === -1 || idxNamaRekap === -1 || idxStatus === -1 || idxJamRekap === -1) {
+		throw new Error("Kolom rekap tidak lengkap (wajib ada tanggal, nama_guru, jam, status)");
+	}
+
+	// Ambil semua guru unik dari Jadwal
+	const setGuru = new Set();
+	jRows.forEach(row => {
+		const nama = String(row[idxNama] || "").trim();
+		if (nama) setGuru.add(nama);
+	});
+	const daftarGuru = Array.from(setGuru).sort();
+
+	// Hitung hari kerja
+	const yearInt = parseInt(year, 10);
+	const monthInt = parseInt(monthNum, 10);
+	const dayCounts = { ahad: 0, senin: 0, selasa: 0, rabu: 0, kamis: 0, jumat: 0, sabtu: 0 };
+	const daysInMonth = new Date(yearInt, monthInt, 0).getDate();
+	const dayNames = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+
+	const validDates = [];
+	for (let i = 1; i <= daysInMonth; i++) {
+		const date = new Date(yearInt, monthInt - 1, i);
+		const dayIdx = date.getDay();
+		if (dayIdx === 5) continue; // Jumat Libur
+		const dateStr = `${year}-${String(monthNum).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+		const hari = dayNames[dayIdx];
+		validDates.push({ dateStr, hari, label: `${i}/${monthInt}/${year}` });
+		dayCounts[hari]++;
+	}
+
+	const normalisasiHari = (h) => {
+		if (!h) return "";
+		const clean = String(h).trim().toLowerCase();
+		if (clean === "senin" || clean === "mon") return "senin";
+		if (clean === "selasa" || clean === "tue") return "selasa";
+		if (clean === "rabu" || clean === "wed") return "rabu";
+		if (clean === "kamis" || clean === "thu") return "kamis";
+		if (clean === "jumat" || clean === "fri") return "jumat";
+		if (clean === "sabtu" || clean === "sat") return "sabtu";
+		if (clean === "ahad" || clean === "minggu" || clean === "sun") return "ahad";
+		return clean;
+	};
+
+	// Group schedules
+	const teacherDayLoad = {};
+	jRows.forEach(row => {
+		const nama = String(row[idxNama] || "").trim();
+		if (!nama) return;
+		const hari = normalisasiHari(row[idxHari]);
+		if (!teacherDayLoad[nama]) teacherDayLoad[nama] = {};
+		if (!teacherDayLoad[nama][hari]) teacherDayLoad[nama][hari] = 0;
+		teacherDayLoad[nama][hari]++;
+	});
+
+	const dataRows = [];
+
+	daftarGuru.forEach((namaGuru, index) => {
+		let totalJadwal = 0;
+		let jtm7Hari = 0;
+		if (teacherDayLoad[namaGuru]) {
+			Object.keys(teacherDayLoad[namaGuru]).forEach(hari => {
+				const countDay = dayCounts[hari] || 0;
+				totalJadwal += (teacherDayLoad[namaGuru][hari] * countDay);
+				jtm7Hari += teacherDayLoad[namaGuru][hari];
+			});
+		}
+
+		const rekapGuruBulanIni = lRows.filter(r => 
+			String(r[idxNamaRekap] || "").trim().toLowerCase() === namaGuru.toLowerCase() &&
+			String(r[idxTanggal] || "").startsWith(bulanYYYYMM)
+		);
+
+		let H_total = 0, I_total = 0, S_total = 0, L_total = 0, A_total = 0;
+		const rowData = [index + 1, namaGuru, jtm7Hari, totalJadwal];
+
+		validDates.forEach((d) => {
+			const jadwalHariIni = jRows.filter(j => 
+				String(j[idxNama] || "").trim().toLowerCase() === namaGuru.toLowerCase() && 
+				normalisasiHari(j[idxHari]) === d.hari
+			);
+			const rekapHariIni = rekapGuruBulanIni.filter(r => String(r[idxTanggal] || "").trim() === d.dateStr);
+
+			for (let jam = 1; jam <= 3; jam++) {
+				const isJadwal = jadwalHariIni.some(j => String(j[idxJam] || "").trim() === String(jam));
+
+				if (!isJadwal) {
+					rowData.push("");
+				} else {
+					const rekapJam = rekapHariIni.find(r => String(r[idxJamRekap] || "").trim() === String(jam));
+					if (rekapJam) {
+						const status = String(rekapJam[idxStatus] || "").toUpperCase();
+						if (status === "HADIR") { rowData.push("H"); H_total++; }
+						else if (status === "IZIN") { rowData.push("I"); I_total++; }
+						else if (status === "SAKIT") { rowData.push("S"); S_total++; }
+						else if (status === "ALPHA" || status === "ALPA") { rowData.push("A"); A_total++; }
+						else if (status === "LIBUR") { rowData.push("L"); L_total++; }
+						else { rowData.push(""); }
+					} else {
+						rowData.push("");
+					}
+				}
+			}
+		});
+
+		const rekapTotal = totalJadwal - (I_total + S_total + L_total + A_total);
+		rowData.push(H_total, I_total, S_total, L_total, A_total, rekapTotal);
+		dataRows.push(rowData);
+	});
+
+	// Create/Clear sheet
+	const sheetList = await sheets.getSheetsList();
+	let sheetExists = sheetList.some(s => s.properties.title.toLowerCase() === targetSheetName.toLowerCase());
+	if (!sheetExists) {
+		await sheets.createSheet(targetSheetName);
+	}
+
+	try {
+		await sheets.clearData(`${targetSheetName}!A:ZZ`);
+	} catch (clearErr) {
+		console.warn("Gagal mengosongkan sheet:", clearErr.message);
+	}
+
+	// Buat values
+	const headers1 = ["NO", "NAMA", "JTM 7 HARI", "JADWAL"];
+	validDates.forEach(d => { headers1.push(d.label, "", ""); });
+	headers1.push("HADIR", "IZIN", "SAKIT", "LIBUR", "ALPHA", "REKAP");
+
+	let totalJTM = 0;
+	let totalJadwalAll = 0;
+	let totalHadirAll = 0;
+	let totalIzinAll = 0;
+	let totalSakitAll = 0;
+	let totalLiburAll = 0;
+	let totalAlphaAll = 0;
+	let totalRekapAll = 0;
+
+	dataRows.forEach(row => {
+		totalJTM += row[2] || 0;
+		totalJadwalAll += row[3] || 0;
+		const len = row.length;
+		totalHadirAll += row[len - 6] || 0;
+		totalIzinAll += row[len - 5] || 0;
+		totalSakitAll += row[len - 4] || 0;
+		totalLiburAll += row[len - 3] || 0;
+		totalAlphaAll += row[len - 2] || 0;
+		totalRekapAll += row[len - 1] || 0;
+	});
+
+	const sumRow = ["", "TOTAL", totalJTM, totalJadwalAll];
+	for (let i = 0; i < validDates.length * 3; i++) {
+		sumRow.push("");
+	}
+	sumRow.push(
+		totalHadirAll, totalIzinAll, totalSakitAll, totalLiburAll, totalAlphaAll, totalRekapAll
+	);
+
+	const values = [
+		[`REKAPITULASI ABSENSI GURU - BULAN ${targetSheetName.toUpperCase()} ${year}`],
+		[],
+		headers1,
+		...dataRows,
+		sumRow
+	];
+
+	const headers = await sheets.getHeaders();
+	const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheets.sheetId}/values/${encodeURIComponent(targetSheetName + '!A1')}?valueInputOption=RAW`;
+	
+	const response = await fetch(updateUrl, {
+		method: "PUT",
+		headers,
+		body: JSON.stringify({ values }),
+	});
+
+	if (!response.ok) {
+		throw new Error(`Gagal menulis data rekap ke Google Sheets: ${await response.text()}`);
+	}
+}
+
 export default {
 	async fetch(request, env, ctx) {
 		const url = new URL(request.url);
@@ -406,16 +623,12 @@ export default {
 					const { monthName, year } = body;
 					if (!monthName) return createErrorResponse("Bulan wajib diisi", 400);
 
-					const taskId = Date.now().toString();
-					const payload = JSON.stringify({ monthName, year });
-					
-					await sheets.appendData('Task_Queue!A:F', [
-						[taskId, 'SYNC_BULANAN', payload, 'PENDING', new Date().toISOString(), '']
-					]);
+					const sheetsHelper = new GoogleSheetsHelper(env);
+					await syncBulananOnline(sheetsHelper, monthName, year || new Date().getFullYear().toString());
 
-					return createResponse({ message: "Sinkronisasi bulanan telah dijadwalkan ke Task Queue" });
+					return createResponse({ message: "Sinkronisasi rekap bulanan berhasil diperbarui secara langsung!" });
 				} catch (error) {
-					return createErrorResponse("Gagal sync bulanan: " + error.message, 500);
+					return createErrorResponse("Gagal sinkronisasi bulanan: " + error.message, 500);
 				}
 			}
 
@@ -437,6 +650,122 @@ export default {
 					return createResponse({ message: "Ekspor laporan telah dijadwalkan ke Task Queue" });
 				} catch (error) {
 					return createErrorResponse("Gagal memproses ekspor laporan: " + error.message, 500);
+				}
+			}
+
+			if (url.pathname === '/api/save-rekap-sheet' && request.method === 'POST') {
+				try {
+					const body = await request.json();
+					const { monthName, year, values } = body;
+					if (!monthName || !values || !Array.isArray(values)) {
+						return createErrorResponse("Nama bulan dan values wajib diisi", 400);
+					}
+
+					const cleanMonth = monthName.trim();
+					const sheetsHelper = new GoogleSheetsHelper(env);
+					const sheetList = await sheetsHelper.getSheetsList();
+					let sheetExists = sheetList.some(s => s.properties.title.toLowerCase() === cleanMonth.toLowerCase());
+
+					if (!sheetExists) {
+						await sheetsHelper.createSheet(cleanMonth);
+					}
+
+					try {
+						await sheetsHelper.clearData(`${cleanMonth}!A:ZZ`);
+					} catch (clearErr) {
+						console.warn("Gagal mengosongkan sheet:", clearErr.message);
+					}
+
+					// Tulis data values secara RAW (angka murni)
+					const headers = await sheetsHelper.getHeaders();
+					const updateUrl = `https://sheets.googleapis.com/v4/spreadsheets/${sheetsHelper.sheetId}/values/${encodeURIComponent(cleanMonth + '!A1')}?valueInputOption=RAW`;
+					
+					const response = await fetch(updateUrl, {
+						method: "PUT",
+						headers,
+						body: JSON.stringify({ values }),
+					});
+
+					if (!response.ok) {
+						throw new Error(`Gagal menulis data rekap ke Google Sheets: ${await response.text()}`);
+					}
+
+					return createResponse({ message: "Berhasil menyimpan rekap bulanan ke Google Sheets!" });
+				} catch (error) {
+					return createErrorResponse("Gagal menyimpan rekap: " + error.message, 500);
+				}
+			}
+
+			if (url.pathname === '/api/download-rekap' && request.method === 'GET') {
+				try {
+					const format = url.searchParams.get('format');
+					const monthName = url.searchParams.get('monthName');
+					const year = url.searchParams.get('year') || new Date().getFullYear().toString();
+
+					if (!format || !monthName) {
+						return createErrorResponse("Format dan nama bulan wajib diisi", 400);
+					}
+
+					const cleanMonth = monthName.trim();
+					const sheetsHelper = new GoogleSheetsHelper(env);
+
+					// 1. Pemicu sinkronisasi data online real-time ke Google Sheets
+					// Menggunakan angka murni agar PDF tidak memuat rumus yang rawan error
+					try {
+						await syncBulananOnline(sheetsHelper, cleanMonth, year);
+					} catch (syncErr) {
+						console.warn("Gagal melakukan pra-sinkronisasi bulanan online:", syncErr.message);
+					}
+
+					// 2. Ambil sheet metadata
+					const sheetList = await sheetsHelper.getSheetsList();
+					const targetSheet = sheetList.find(s => s.properties.title.toLowerCase() === cleanMonth.toLowerCase());
+					
+					if (!targetSheet) {
+						return createErrorResponse(`Sheet rekap untuk bulan ${cleanMonth} tidak ditemukan.`, 404);
+					}
+
+					const sheetId = targetSheet.properties.sheetId;
+					const sheetsHeaders = await sheetsHelper.getHeaders();
+
+					let exportUrl = "";
+					let contentType = "";
+					let filename = `Rekap_Absensi_${cleanMonth}_${year}`;
+
+					if (format === "xlsx") {
+						exportUrl = `https://docs.google.com/spreadsheets/d/${env.GOOGLE_SHEET_ID}/export?format=xlsx&gid=${sheetId}`;
+						contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+						filename += ".xlsx";
+					} else {
+						exportUrl = `https://docs.google.com/spreadsheets/d/${env.GOOGLE_SHEET_ID}/export?format=pdf&gid=${sheetId}` +
+							`&size=A4&portrait=true&fitw=true&gridlines=true`;
+						contentType = "application/pdf";
+						filename += ".pdf";
+					}
+
+					const response = await fetch(exportUrl, {
+						method: "GET",
+						headers: {
+							Authorization: sheetsHeaders.Authorization
+						}
+					});
+
+					if (!response.ok) {
+						throw new Error(`Gagal mengunduh file dari Google Sheets API: ${await response.text()}`);
+					}
+
+					const fileBuffer = await response.arrayBuffer();
+
+					return new Response(fileBuffer, {
+						headers: {
+							...corsHeaders,
+							"Content-Type": contentType,
+							"Content-Disposition": `attachment; filename="${filename}"`,
+							"Access-Control-Expose-Headers": "Content-Disposition"
+						}
+					});
+				} catch (error) {
+					return createErrorResponse("Gagal mengunduh berkas laporan: " + error.message, 500);
 				}
 			}
 

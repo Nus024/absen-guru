@@ -626,3 +626,65 @@ Attendance Integrity
 Attendance Integrity wins.
 
 Always.
+
+---
+
+# CLONING & MULTI-INSTANCE RUNNING GUIDE
+
+This section explains how to clone/duplicate only the **WA Bot** component to run a separate instance with a different Google Sheet and Service Account credentials.
+
+## Step-by-Step Cloning Protocol
+
+To prevent errors, follow these steps precisely:
+
+### Step 1: Directory Setup
+1. Create a new directory at your target location (e.g., `D:\NUS\AbsenNew\Bot Kedua`).
+2. Copy the files so that the new directory has this precise layout (do NOT copy `web` or `worker` folders):
+
+```text
+Nama Folder Proyek Baru/
+├── index.js             (File kode utama WA Bot)
+├── package.json         (Definisi dependency)
+├── package-lock.json    (Lockfile dependency)
+├── .env                 (Konfigurasi Sheet ID & Port)
+├── service.json         (Credentials Service Account Google)
+├── absen.bat            (Script toggle ON/OFF bot)
+├── start-bot.bat        (Script internal starter)
+└── run-hidden.vbs       (Script run background tanpa jendela cmd)
+```
+
+> [!WARNING]
+> Do NOT copy the `./session_data` or `.wwebjs_cache` directories from the old bot. The clone must start without these folders so that a new WhatsApp Web session is generated upon scanning the new QR code.
+
+### Step 2: Environment Configuration
+In the new directory:
+1. Open the copied `.env` file and replace the `GOOGLE_SHEET_ID` with the new target Sheet ID:
+   ```env
+   GOOGLE_SHEET_ID=YOUR_NEW_SPREADSHEET_ID
+   ```
+2. Replace the credentials in `service.json` with the new Google Service Account private key JSON.
+   * If you name the file differently (e.g., `service-baru.json`), update `PRIVATE_KEY_PATH` in `.env`:
+     ```env
+     PRIVATE_KEY_PATH=./service-baru.json
+     ```
+
+### Step 3: Script Paths Update (If using Batch/VBS files)
+If you copied the `.bat` and `.vbs` files, you **must** update the absolute directory paths inside them:
+1. In `absen.bat`:
+   * Change line 3: `set "BOT_DIR=d:\NUS\AbsenNew\Bot 2026"` to your new folder path (e.g., `set "BOT_DIR=d:\NUS\AbsenNew\Bot Kedua"`).
+   * Change line 6: `cd /d "D:\NUS\AbsenNew\Bot 2026"` to your new folder path.
+2. In `run-hidden.vbs`:
+   * Change line 2: `D:\NUS\AbsenNew\Bot 2026\start-bot.bat` to your new path (e.g., `D:\NUS\AbsenNew\Bot Kedua\start-bot.bat`).
+
+### Step 4: Installation & Execution
+1. Open terminal/PowerShell in the new directory.
+2. Run the dependency installer:
+   ```bash
+   npm install
+   ```
+3. Run the bot directly to scan the QR code:
+   ```bash
+   node index.js
+   ```
+4. Scan the QR code with the new WhatsApp account.
+5. Once authenticated, if running as a service, you can close the process and run `absen.bat` to launch it silently in the background.

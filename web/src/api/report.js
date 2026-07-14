@@ -29,3 +29,40 @@ export const syncBulanan = (payload) =>
  */
 export const eksporBulanan = (payload) =>
   post(API_ENDPOINTS.EKSPOR_BULANAN, payload);
+
+/**
+ * Unduh berkas rekap biner (PDF/Excel) langsung dari server.
+ * @param {"pdf" | "xlsx"} format
+ * @param {string} monthName
+ * @param {number} year
+ * @returns {Promise<Blob>}
+ */
+export const downloadRekapFile = async (format, monthName, year) => {
+  const token = localStorage.getItem("token");
+  const headers = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const url = `${API_ENDPOINTS.EKSPOR_BULANAN.replace("ekspor-bulanan", "download-rekap")}?format=${format}&monthName=${encodeURIComponent(monthName)}&year=${year}`;
+  const response = await fetch(url, {
+    method: "GET",
+    headers
+  });
+  if (!response.ok) {
+    let errText = "Gagal mengunduh berkas.";
+    try {
+      const errObj = await response.json();
+      errText = errObj.error || errText;
+    } catch {}
+    throw new Error(errText);
+  }
+  return response.blob();
+};
+
+/**
+ * Menyimpan data rekap bulanan langsung ke Google Sheets secara RAW.
+ * @param {{ monthName: string, year: number, values: Array<Array<any>> }} payload
+ * @returns {Promise<{ message: string }>}
+ */
+export const saveRekapSheet = (payload) =>
+  post(API_ENDPOINTS.EKSPOR_BULANAN.replace("ekspor-bulanan", "save-rekap-sheet"), payload);
