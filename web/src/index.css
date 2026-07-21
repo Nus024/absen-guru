@@ -52,8 +52,8 @@
   --pink-tint: rgba(255, 45, 85, 0.12);
 
   /* Color — UI Chrome */
-  --bar-bg: rgba(255, 255, 255, 0.82);
-  --alert-bg: rgba(255, 255, 255, 0.9);
+  --bar-bg: rgba(255, 255, 255, 0.92);
+  --alert-bg: rgba(255, 255, 255, 0.95);
   --alert-btn-active: rgba(0, 0, 0, 0.05);
   --focus-ring: rgba(0, 122, 255, 0.36);
 
@@ -450,8 +450,8 @@
   --pink-tint: rgba(255, 45, 85, 0.12);
 
   /* Color — UI Chrome */
-  --bar-bg: rgba(255, 255, 255, 0.82);
-  --alert-bg: rgba(255, 255, 255, 0.9);
+  --bar-bg: rgba(255, 255, 255, 0.92);
+  --alert-bg: rgba(255, 255, 255, 0.95);
   --alert-btn-active: rgba(0, 0, 0, 0.05);
   --focus-ring: rgba(0, 122, 255, 0.36);
   --select-chevron: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a7a7a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
@@ -2171,8 +2171,8 @@ tbody tr {
   align-items: center;
   padding: var(--sp-12) var(--sp-20);
   background: var(--bar-bg); /* Glass background */
-  backdrop-filter: saturate(180%) blur(10px);
-  -webkit-backdrop-filter: saturate(180%) blur(10px);
+  backdrop-filter: saturate(200%) blur(20px);
+  -webkit-backdrop-filter: saturate(200%) blur(20px);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -2191,8 +2191,8 @@ tbody tr {
   left: 16px;
   right: 16px;
   background: var(--bar-bg) !important; /* Glass background */
-  backdrop-filter: saturate(180%) blur(10px) !important;
-  -webkit-backdrop-filter: saturate(180%) blur(10px) !important;
+  backdrop-filter: saturate(200%) blur(20px) !important;
+  -webkit-backdrop-filter: saturate(200%) blur(20px) !important;
   border: 1px solid var(--border) !important;
   border-radius: 24px !important;
   justify-content: space-around;
@@ -2456,8 +2456,8 @@ tbody tr {
     left: 16px;
     right: 16px;
     background: var(--bar-bg) !important;
-    backdrop-filter: saturate(180%) blur(10px) !important;
-    -webkit-backdrop-filter: saturate(180%) blur(10px) !important;
+    backdrop-filter: saturate(200%) blur(20px) !important;
+    -webkit-backdrop-filter: saturate(200%) blur(20px) !important;
     border: 1px solid var(--border) !important;
     border-radius: 24px !important;
     padding: 6px 0;
