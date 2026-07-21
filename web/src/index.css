@@ -251,8 +251,8 @@
     --bg-secondary: rgba(255, 255, 255, 0.06); /* Primary Card */
     --bg-tertiary: rgba(255, 255, 255, 0.03); /* Secondary Card */
     --bg-quaternary: rgba(255, 255, 255, 0.08);
-    --bg-elevated: rgba(255, 255, 255, 0.05); /* Glass Background */
-    --bg-glass: rgba(255, 255, 255, 0.05);
+    --bg-elevated: #1C222B; /* Elevated Surface — HIG Dark */
+    --bg-glass: rgba(28, 34, 43, 0.92);
     --bg-overlay: rgba(10, 18, 30, 0.70);
     --bg-secondary-btn: rgba(255, 255, 255, 0.06);
     --bg-secondary-btn-active: rgba(255, 255, 255, 0.12);
@@ -287,7 +287,7 @@
 
     /* UI Chrome (Dark) */
     --bar-bg: rgba(23, 27, 34, 0.72);
-    --alert-bg: rgba(23, 27, 34, 0.72);
+    --alert-bg: rgba(28, 34, 43, 0.97);
     --alert-btn-active: rgba(255, 255, 255, 0.1);
     --focus-ring: rgba(10, 132, 255, 0.36);
 
@@ -330,8 +330,8 @@
   --bg-secondary: #171B22; /* Primary Card */
   --bg-tertiary: #1C222B; /* Secondary Card */
   --bg-quaternary: rgba(255, 255, 255, 0.08);
-  --bg-elevated: rgba(23, 27, 34, 0.72); /* Glass Background */
-  --bg-glass: rgba(23, 27, 34, 0.72);
+  --bg-elevated: #1C222B; /* Elevated Surface — HIG Dark */
+  --bg-glass: rgba(28, 34, 43, 0.92);
   --bg-overlay: rgba(10, 18, 30, 0.70);
   --body-bg: radial-gradient(circle at 50% -20%, #14213d 0%, #080d16 100%);
   --bg-secondary-btn: rgba(255, 255, 255, 0.06);
@@ -370,7 +370,7 @@
 
   /* Color — UI Chrome */
   --bar-bg: rgba(23, 27, 34, 0.72);
-  --alert-bg: rgba(23, 27, 34, 0.72);
+  --alert-bg: rgba(28, 34, 43, 0.97);
   --alert-btn-active: rgba(255, 255, 255, 0.1);
   --focus-ring: rgba(10, 132, 255, 0.36);
   --select-chevron: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
@@ -3571,12 +3571,12 @@ tbody tr {
   width: 100% !important;
   max-width: 560px !important;
   background: var(--bg-elevated) !important;
-  backdrop-filter: blur(40px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   border-radius: 28px 28px 0 0 !important;
-  border: 1px solid var(--border) !important;
+  border: 1px solid var(--separator) !important;
   border-bottom: none !important;
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35) !important;
+  box-shadow: 0 -16px 48px rgba(0, 0, 0, 0.50) !important;
   padding: 24px 24px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
   display: flex !important;
   flex-direction: column !important;
@@ -3596,7 +3596,7 @@ tbody tr {
   align-self: center !important;
   margin-top: 0 !important;
   margin-bottom: 16px !important;
-  opacity: 1 !important;
+  opacity: 0.6 !important;
   flex-shrink: 0 !important;
 }
 
@@ -3680,4 +3680,49 @@ tbody tr {
   background: linear-gradient(135deg, #0A84FF, #3D9BFF) !important;
   color: #FFFFFF !important;
   box-shadow: 0 4px 12px rgba(10, 132, 255, 0.3) !important;
+}
+
+/* ─── Profile Sheet: Inner List Elevation (HIG Dark Layer Hierarchy) ─── */
+.ios-profile-sheet .ios-list {
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--separator) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+.ios-profile-sheet .ios-list-row {
+  background: transparent !important;
+  border-bottom: 0.5px solid var(--separator) !important;
+}
+
+.ios-profile-sheet .ios-list-row:last-child {
+  border-bottom: none !important;
+}
+
+.ios-profile-sheet .ios-list-row.interactive:active,
+.ios-profile-sheet .ios-list-row.interactive:hover {
+  background: var(--bg-quaternary) !important;
+}
+
+/* Close Button */
+.ios-profile-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-quaternary);
+  border: none;
+  cursor: pointer;
+  transition: background 150ms ease;
+  flex-shrink: 0;
+}
+
+.ios-profile-close-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+.ios-profile-close-btn:active {
+  opacity: 0.7;
 }
