@@ -1083,7 +1083,7 @@ textarea.ios-input {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 80px var(--sp-20) 20px;
+  padding: 76px var(--sp-20) 20px;
   animation: fade-in var(--dur-xs) ease-out;
 }
 
