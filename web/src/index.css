@@ -8,50 +8,54 @@
 
 /* ─── 1. DESIGN TOKENS (Light Mode) ─── */
 :root {
-  /* Color — System Backgrounds (Apple iOS 14 Pro Dark) */
-  --bg-primary: #0D1117;
-  --bg-secondary: #171B22; /* Primary Card */
-  --bg-tertiary: #1C222B; /* Secondary Card */
-  --bg-quaternary: rgba(255, 255, 255, 0.08);
-  --bg-elevated: rgba(32, 34, 40, 0.72); /* Glass Background */
-  --bg-glass: rgba(32, 34, 40, 0.72);
-  --bg-overlay: rgba(0, 0, 0, 0.65);
+  /* Color — System Backgrounds (Light Mode) */
+  --bg-primary: #F2F2F7;
+  --bg-secondary: #FFFFFF; /* Primary Card */
+  --bg-tertiary: #E5E5EA; /* Secondary Card */
+  --bg-quaternary: rgba(0, 0, 0, 0.05);
+  --bg-elevated: rgba(255, 255, 255, 0.82); /* Glass Background */
+  --bg-glass: rgba(255, 255, 255, 0.82);
+  --bg-overlay: rgba(10, 18, 30, 0.25);
+  --body-bg: linear-gradient(180deg, #FFFFFF 0%, #F2F2F7 100%);
+  --bg-secondary-btn: rgba(0, 0, 0, 0.05);
+  --bg-secondary-btn-active: rgba(0, 0, 0, 0.09);
+  --ios-list-bg: var(--bg-secondary);
 
   /* Color — System Labels */
-  --label-primary: #FFFFFF;
-  --label-secondary: #A1A1AA;
-  --label-tertiary: rgba(255, 255, 255, 0.3);
-  --label-quaternary: rgba(255, 255, 255, 0.15);
+  --label-primary: #1C1C1E; /* Soft Apple primary label */
+  --label-secondary: #6E6E73;
+  --label-tertiary: rgba(60, 60, 67, 0.3);
+  --label-quaternary: rgba(60, 60, 67, 0.15);
 
   /* Color — Separators & Borders */
-  --separator: rgba(255, 255, 255, 0.06);
-  --separator-opaque: rgba(255, 255, 255, 0.12);
-  --border: rgba(255, 255, 255, 0.08);
+  --separator: rgba(60, 60, 67, 0.12);
+  --separator-opaque: rgba(60, 60, 67, 0.25);
+  --border: rgba(60, 60, 67, 0.08);
 
-  /* Color — System Colors (iOS 14 Pro Dark Palette) */
-  --blue: #0A84FF;
-  --blue-dark: #0071e3;
-  --blue-tint: rgba(10, 132, 255, 0.15);
-  --blue-tint-hover: rgba(10, 132, 255, 0.25);
+  /* Color — System Colors (iOS 14 Pro Light Palette) */
+  --blue: #007AFF;
+  --blue-dark: #0056B3;
+  --blue-tint: rgba(0, 122, 255, 0.1);
+  --blue-tint-hover: rgba(0, 122, 255, 0.2);
 
-  --green: #30D158;
-  --green-tint: rgba(48, 209, 88, 0.15);
-  --yellow: #FFD60A;
-  --yellow-tint: rgba(255, 214, 10, 0.15);
-  --orange: #FF9F0A;
-  --orange-tint: rgba(255, 159, 10, 0.15);
-  --red: #FF453A;
-  --red-tint: rgba(255, 69, 58, 0.15);
-  --purple: #BF5AF2;
-  --purple-tint: rgba(191, 90, 242, 0.15);
+  --green: #34C759;
+  --green-tint: rgba(52, 199, 89, 0.12);
+  --yellow: #FFCC00;
+  --yellow-tint: rgba(255, 204, 0, 0.12);
+  --orange: #FF9500;
+  --orange-tint: rgba(255, 149, 0, 0.12);
+  --red: #FF3B30;
+  --red-tint: rgba(255, 59, 48, 0.12);
+  --purple: #AF52DE;
+  --purple-tint: rgba(175, 82, 222, 0.12);
   --pink: #FF2D55;
-  --pink-tint: rgba(255, 45, 85, 0.15);
+  --pink-tint: rgba(255, 45, 85, 0.12);
 
   /* Color — UI Chrome */
-  --bar-bg: rgba(32, 34, 40, 0.72);
-  --alert-bg: rgba(32, 34, 40, 0.72);
-  --alert-btn-active: rgba(255, 255, 255, 0.1);
-  --focus-ring: rgba(10, 132, 255, 0.36);
+  --bar-bg: rgba(255, 255, 255, 0.82);
+  --alert-bg: rgba(255, 255, 255, 0.9);
+  --alert-btn-active: rgba(0, 0, 0, 0.05);
+  --focus-ring: rgba(0, 122, 255, 0.36);
 
   /* Chevron icon for selects */
   --select-chevron: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a7a7a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
@@ -59,47 +63,47 @@
   /* ─── Typography (SF Pro Scaling & Tight Tracking) ─── */
   --font: "SF Pro Display", "SF Pro Text", "Inter", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 
-  --fs-large-title: 34px;
-  --lh-large-title: 1.47;
-  --ls-large-title: -0.374px;
+  --fs-large-title: 30px;
+  --lh-large-title: 1.4;
+  --ls-large-title: -0.3px;
 
-  --fs-title-1: 28px;
-  --lh-title-1: 1.14;
-  --ls-title-1: 0.196px;
+  --fs-title-1: 24px;
+  --lh-title-1: 1.2;
+  --ls-title-1: 0.1px;
 
-  --fs-title-2: 22px;
-  --lh-title-2: 1.24;
-  --ls-title-2: -0.374px;
+  --fs-title-2: 20px;
+  --lh-title-2: 1.25;
+  --ls-title-2: -0.2px;
 
-  --fs-title-3: 20px;
-  --lh-title-3: 1.25;
-  --ls-title-3: -0.2px;
+  --fs-title-3: 18px;
+  --lh-title-3: 1.3;
+  --ls-title-3: -0.1px;
 
-  --fs-headline: 17px;
-  --lh-headline: 1.24;
-  --ls-headline: -0.374px;
+  --fs-headline: 16px;
+  --lh-headline: 1.3;
+  --ls-headline: -0.1px;
 
-  --fs-body: 17px;
-  --lh-body: 1.47;
-  --ls-body: -0.374px;
+  --fs-body: 15px;
+  --lh-body: 1.4;
+  --ls-body: -0.15px;
 
-  --fs-callout: 16px;
-  --lh-callout: 1.3;
-  --ls-callout: -0.25px;
+  --fs-callout: 14.5px;
+  --lh-callout: 1.35;
+  --ls-callout: -0.15px;
 
-  --fs-subheadline: 15px;
-  --lh-subheadline: 1.35;
-  --ls-subheadline: -0.2px;
+  --fs-subheadline: 13.5px;
+  --lh-subheadline: 1.4;
+  --ls-subheadline: -0.1px;
 
-  --fs-footnote: 13px;
-  --lh-footnote: 1.38;
-  --ls-footnote: -0.1px;
+  --fs-footnote: 12px;
+  --lh-footnote: 1.4;
+  --ls-footnote: -0.05px;
 
-  --fs-caption: 13px;
-  --lh-caption: 1.38;
-  --ls-caption: -0.1px;
+  --fs-caption: 11px;
+  --lh-caption: 1.4;
+  --ls-caption: 0px;
 
-  --fs-caption-2: 11px;
+  --fs-caption-2: 10px;
   --lh-caption-2: 1.3;
   --ls-caption-2: -0.05px;
 
@@ -153,52 +157,53 @@
   --radius-full: 9999px;
 
   /* ─── Standard HIG Semantic Color Tokens ─── */
-  --color-primary: #0A84FF;
-  --color-primary-pressed: #0066DD;
-  --color-primary-disabled: #4A6B8C;
-  --color-secondary: #30D158;
-  --color-danger: #FF453A;
-  --color-warning: #FF9F0A;
-  --color-purple: #BF5AF2;
-  --color-info: #0A84FF;
-  --color-background: #0D1117;
-  --color-grouped-bg: #1C222B;
-  --color-surface: #171B22;
-  --color-elevated: rgba(32, 34, 40, 0.72);
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-separator: rgba(255, 255, 255, 0.06);
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #A1A1AA;
-  --color-text-tertiary: rgba(255, 255, 255, 0.3);
-  --color-text-placeholder: rgba(255, 255, 255, 0.15);
-  --color-selection: #0A84FF;
-  --color-disabled: #6B7280;
+  --color-primary: #007AFF;
+  --color-primary-pressed: #0056B3;
+  --color-primary-disabled: rgba(0, 122, 255, 0.3);
+  --color-secondary: #34C759;
+  --color-danger: #FF3B30;
+  --color-warning: #FF9500;
+  --color-purple: #AF52DE;
+  --color-info: #007AFF;
+  --color-background: #F2F2F7;
+  --color-grouped-bg: #F2F2F7;
+  --color-surface: #FFFFFF;
+  --color-elevated: rgba(255, 255, 255, 0.85);
+  --color-border: rgba(60, 60, 67, 0.08);
+  --color-separator: rgba(60, 60, 67, 0.12);
+  --color-text-primary: #1C1C1E;
+  --color-text-secondary: #6E6E73;
+  --color-text-tertiary: rgba(60, 60, 67, 0.3);
+  --color-text-placeholder: rgba(60, 60, 67, 0.15);
+  --color-selection: #007AFF;
+  --color-disabled: #AEAEB2;
 
   /* ─── HIG Typography Scale (rem/px equivalents) ─── */
-  --hig-fs-large-title: 34px;
-  --hig-fs-title: 28px;
-  --hig-fs-headline: 20px;
-  --hig-fs-body: 17px;
-  --hig-fs-callout: 16px;
-  --hig-fs-subheadline: 15px;
-  --hig-fs-footnote: 13px;
-  --hig-fs-caption: 12px;
-  --hig-fs-button: 17px;
-  --hig-fs-label: 13px;
-  --hig-fs-statistic: 28px;
-  --hig-fs-badge: 11px;
-  --hig-fs-helper: 12px;
-  --hig-fs-nav-title: 22px;
-  --hig-fs-section-header: 13px;
+  --hig-fs-large-title: 30px;
+  --hig-fs-title: 24px;
+  --hig-fs-headline: 16px;
+  --hig-fs-body: 15px;
+  --hig-fs-callout: 14.5px;
+  --hig-fs-subheadline: 13.5px;
+  --hig-fs-footnote: 12px;
+  --hig-fs-caption: 11px;
+  --hig-fs-button: 15px;
+  --hig-fs-label: 12px;
+  --hig-fs-statistic: 24px;
+  --hig-fs-badge: 10px;
+  --hig-fs-helper: 11px;
+  --hig-fs-nav-title: 18px;
+  --hig-fs-section-header: 12px;
 
   --ios-radius-inner: var(--radius-medium);
 
   /* ─── Elevation / Shadows (Apple-style elevation) ─── */
-  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.12);
-  --shadow-sheet: 0 8px 24px rgba(0, 0, 0, 0.18);
-  --shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.18);
-  --shadow-alert: 0 8px 24px rgba(0, 0, 0, 0.18);
-  --shadow-button: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.02);
+  --shadow-sheet: 0 -12px 48px rgba(0, 0, 0, 0.06), 0 -2px 10px rgba(0, 0, 0, 0.03);
+  --shadow-menu: 0 10px 30px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.03);
+  --shadow-alert: 0 24px 64px rgba(0, 0, 0, 0.10), 0 4px 20px rgba(0, 0, 0, 0.05);
+  --shadow-button: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --shadow-header: 0 2px 8px rgba(0, 0, 0, 0.04);
 
 
   .apple-date-trigger {
@@ -248,7 +253,10 @@
     --bg-quaternary: rgba(255, 255, 255, 0.08);
     --bg-elevated: rgba(255, 255, 255, 0.05); /* Glass Background */
     --bg-glass: rgba(255, 255, 255, 0.05);
-    --bg-overlay: rgba(0, 0, 0, 0.65);
+    --bg-overlay: rgba(10, 18, 30, 0.70);
+    --bg-secondary-btn: rgba(255, 255, 255, 0.06);
+    --bg-secondary-btn-active: rgba(255, 255, 255, 0.12);
+    --ios-list-bg: var(--bg-tertiary);
 
     /* Labels */
     --label-primary: #ffffff;
@@ -278,8 +286,8 @@
     --purple-tint: rgba(191, 90, 242, 0.15);
 
     /* UI Chrome (Dark) */
-    --bar-bg: rgba(32, 34, 40, 0.72);
-    --alert-bg: rgba(32, 34, 40, 0.72);
+    --bar-bg: rgba(23, 27, 34, 0.72);
+    --alert-bg: rgba(23, 27, 34, 0.72);
     --alert-btn-active: rgba(255, 255, 255, 0.1);
     --focus-ring: rgba(10, 132, 255, 0.36);
 
@@ -288,6 +296,7 @@
     --shadow-sheet: 0 8px 24px rgba(0, 0, 0, 0.18);
     --shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.18);
     --shadow-alert: 0 8px 24px rgba(0, 0, 0, 0.18);
+    --shadow-header: 0 8px 24px rgba(0, 0, 0, 0.20);
 
     --select-chevron: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
 
@@ -303,7 +312,7 @@
     --color-background: #0D1117;
     --color-grouped-bg: #1C222B;
     --color-surface: #171B22;
-    --color-elevated: rgba(32, 34, 40, 0.72);
+    --color-elevated: rgba(23, 27, 34, 0.72);
     --color-border: rgba(255, 255, 255, 0.08);
     --color-separator: rgba(255, 255, 255, 0.06);
     --color-text-primary: #FFFFFF;
@@ -313,6 +322,147 @@
     --color-selection: #0A84FF;
     --color-disabled: #6B7280;
   }
+}
+
+:root[data-theme="dark"] {
+  /* System Backgrounds (Apple iOS 14 Pro Dark) */
+  --bg-primary: #0D1117;
+  --bg-secondary: #171B22; /* Primary Card */
+  --bg-tertiary: #1C222B; /* Secondary Card */
+  --bg-quaternary: rgba(255, 255, 255, 0.08);
+  --bg-elevated: rgba(23, 27, 34, 0.72); /* Glass Background */
+  --bg-glass: rgba(23, 27, 34, 0.72);
+  --bg-overlay: rgba(10, 18, 30, 0.70);
+  --body-bg: radial-gradient(circle at 50% -20%, #14213d 0%, #080d16 100%);
+  --bg-secondary-btn: rgba(255, 255, 255, 0.06);
+  --bg-secondary-btn-active: rgba(255, 255, 255, 0.12);
+  --ios-list-bg: var(--bg-tertiary);
+
+  /* Color — System Labels */
+  --label-primary: #FFFFFF;
+  --label-secondary: #A1A1AA;
+  --label-tertiary: rgba(255, 255, 255, 0.3);
+  --label-quaternary: rgba(255, 255, 255, 0.15);
+
+  /* Color — Separators & Borders */
+  --separator: rgba(255, 255, 255, 0.06);
+  --separator-opaque: rgba(255, 255, 255, 0.12);
+  --border: rgba(255, 255, 255, 0.08);
+
+  /* Color — System Colors (iOS 14 Pro Dark Palette) */
+  --blue: #0A84FF;
+  --blue-dark: #0071e3;
+  --blue-tint: rgba(10, 132, 255, 0.15);
+  --blue-tint-hover: rgba(10, 132, 255, 0.25);
+
+  --green: #30D158;
+  --green-tint: rgba(48, 209, 88, 0.15);
+  --yellow: #FFD60A;
+  --yellow-tint: rgba(255, 214, 10, 0.15);
+  --orange: #FF9F0A;
+  --orange-tint: rgba(255, 159, 10, 0.15);
+  --red: #FF453A;
+  --red-tint: rgba(255, 69, 58, 0.15);
+  --purple: #BF5AF2;
+  --purple-tint: rgba(191, 90, 242, 0.15);
+  --pink: #FF2D55;
+  --pink-tint: rgba(255, 45, 85, 0.15);
+
+  /* Color — UI Chrome */
+  --bar-bg: rgba(23, 27, 34, 0.72);
+  --alert-bg: rgba(23, 27, 34, 0.72);
+  --alert-btn-active: rgba(255, 255, 255, 0.1);
+  --focus-ring: rgba(10, 132, 255, 0.36);
+  --select-chevron: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+  /* Shadows (Dark Theme Override) */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --shadow-sheet: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-alert: 0 8px 24px rgba(0, 0, 0, 0.18);
+  --shadow-header: 0 8px 24px rgba(0, 0, 0, 0.20);
+}
+
+:root[data-theme="light"] {
+  /* Color — System Backgrounds (Light Mode) */
+  --bg-primary: #F2F2F7;
+  --bg-secondary: #FFFFFF; /* Primary Card */
+  --bg-tertiary: #E5E5EA; /* Secondary Card */
+  --bg-quaternary: rgba(0, 0, 0, 0.05);
+  --bg-elevated: rgba(255, 255, 255, 0.82); /* Glass Background */
+  --bg-glass: rgba(255, 255, 255, 0.82);
+  --bg-overlay: rgba(10, 18, 30, 0.25);
+  --body-bg: linear-gradient(180deg, #FFFFFF 0%, #F2F2F7 100%);
+  --bg-secondary-btn: rgba(0, 0, 0, 0.05);
+  --bg-secondary-btn-active: rgba(0, 0, 0, 0.09);
+  --ios-list-bg: var(--bg-secondary);
+
+  /* Color — System Labels */
+  --label-primary: #1C1C1E; /* Soft Apple primary label */
+  --label-secondary: #6E6E73;
+  --label-tertiary: rgba(60, 60, 67, 0.3);
+  --label-quaternary: rgba(60, 60, 67, 0.15);
+
+  /* ─── Standard HIG Semantic Color Tokens (Light) ─── */
+  --color-primary: #007AFF;
+  --color-primary-pressed: #0056B3;
+  --color-primary-disabled: rgba(0, 122, 255, 0.3);
+  --color-secondary: #34C759;
+  --color-danger: #FF3B30;
+  --color-warning: #FF9500;
+  --color-purple: #AF52DE;
+  --color-info: #007AFF;
+  --color-background: #F2F2F7;
+  --color-grouped-bg: #F2F2F7;
+  --color-surface: #FFFFFF;
+  --color-elevated: rgba(255, 255, 255, 0.85);
+  --color-border: rgba(60, 60, 67, 0.08);
+  --color-separator: rgba(60, 60, 67, 0.12);
+  --color-text-primary: #1C1C1E;
+  --color-text-secondary: #6E6E73;
+  --color-text-tertiary: rgba(60, 60, 67, 0.3);
+  --color-text-placeholder: rgba(60, 60, 67, 0.15);
+  --color-selection: #007AFF;
+  --color-disabled: #AEAEB2;
+
+  /* Color — Separators & Borders */
+  --separator: rgba(60, 60, 67, 0.12);
+  --separator-opaque: rgba(60, 60, 67, 0.25);
+  --border: rgba(60, 60, 67, 0.08);
+
+  /* Color — System Colors (iOS 14 Pro Light Palette) */
+  --blue: #007AFF;
+  --blue-dark: #0056B3;
+  --blue-tint: rgba(0, 122, 255, 0.1);
+  --blue-tint-hover: rgba(0, 122, 255, 0.2);
+
+  --green: #34C759;
+  --green-tint: rgba(52, 199, 89, 0.12);
+  --yellow: #FFCC00;
+  --yellow-tint: rgba(255, 204, 0, 0.12);
+  --orange: #FF9500;
+  --orange-tint: rgba(255, 149, 0, 0.12);
+  --red: #FF3B30;
+  --red-tint: rgba(255, 59, 48, 0.12);
+  --purple: #AF52DE;
+  --purple-tint: rgba(175, 82, 222, 0.12);
+  --pink: #FF2D55;
+  --pink-tint: rgba(255, 45, 85, 0.12);
+
+  /* Color — UI Chrome */
+  --bar-bg: rgba(255, 255, 255, 0.82);
+  --alert-bg: rgba(255, 255, 255, 0.9);
+  --alert-btn-active: rgba(0, 0, 0, 0.05);
+  --focus-ring: rgba(0, 122, 255, 0.36);
+  --select-chevron: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237a7a7a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+
+  /* Elevation / Shadows (Apple-style elevation - Light Override) */
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.02);
+  --shadow-sheet: 0 -12px 48px rgba(0, 0, 0, 0.06), 0 -2px 10px rgba(0, 0, 0, 0.03);
+  --shadow-menu: 0 10px 30px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.03);
+  --shadow-alert: 0 24px 64px rgba(0, 0, 0, 0.10), 0 4px 20px rgba(0, 0, 0, 0.05);
+  --shadow-button: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --shadow-header: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -327,13 +477,18 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Smooth theme transition */
+html, body, .app-layout, .sidebar, .ios-card, .ios-list-row, .ios-sheet, .mobile-header, .bottom-nav, .ios-profile-sheet, .ios-segmented-control, .ios-segmented-segment {
+  transition: background 250ms ease-out, color 250ms ease-out, border-color 250ms ease-out, box-shadow 250ms ease-out !important;
+}
+
 html,
 body {
   height: 100%;
   width: 100%;
   overflow: hidden;
   font-family: var(--font);
-  background: radial-gradient(circle at 50% -20%, #14213d 0%, #080d16 100%);
+  background: var(--body-bg);
   color: var(--label-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -642,16 +797,16 @@ h6 {
 
 /* Secondary (Glass Button) */
 .ios-btn-secondary {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--bg-secondary-btn);
   color: var(--blue);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
   backdrop-filter: blur(10px) saturate(180%);
   -webkit-backdrop-filter: blur(10px) saturate(180%);
   padding: 0 24px;
 }
 
 .ios-btn-secondary:active {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-secondary-btn-active);
 }
 
 /* Tertiary */
@@ -872,7 +1027,7 @@ textarea.ios-input {
   box-shadow: none;
   display: flex;
   flex-direction: column;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .ios-list.rekap-minimal .ios-list-row {
@@ -885,6 +1040,10 @@ textarea.ios-input {
   background: transparent;
 }
 
+.ios-list.rekap-minimal .ios-list-row:last-child {
+  border-bottom: none;
+}
+
 
 /* ─── Apple Date Picker / Calendar Style ─── */
 .apple-date-trigger {
@@ -895,7 +1054,7 @@ textarea.ios-input {
   border: none;
   padding: 10px 16px;
   border-radius: var(--radius-medium);
-  color: var(--color-primary);
+  color: var(--blue);
   font-size: var(--hig-fs-subheadline);
   font-weight: 500;
   cursor: pointer;
@@ -909,7 +1068,7 @@ textarea.ios-input {
 }
 
 .apple-date-chevron {
-  color: var(--color-text-tertiary);
+  color: var(--label-tertiary);
   font-size: 16px !important;
 }
 
@@ -917,31 +1076,25 @@ textarea.ios-input {
   position: fixed;
   inset: 0;
   background: var(--bg-overlay);
-  backdrop-filter: saturate(180%) blur(10px);
-  -webkit-backdrop-filter: saturate(180%) blur(10px);
-  z-index: 1600;
-  /* above sheets */
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  z-index: 1600; /* above sheets */
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 20px var(--sp-20) var(--sp-20);
+  justify-content: center;
+  padding: 20px var(--sp-20);
   animation: fade-in var(--dur-xs) ease-out;
 }
 
 .apple-calendar-sheet {
   width: 100%;
-  max-width: 340px;
-  /* Kept compact to fit smaller screens */
-  background: rgba(32, 34, 40, 0.45) !important;
-  backdrop-filter: saturate(180%) blur(20px) !important;
-  -webkit-backdrop-filter: saturate(180%) blur(20px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  border-radius: 20px;
-  /* 20pt corner radius */
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4) !important;
-  padding: 10px var(--sp-12) var(--sp-12);
-  /* Balanced padding */
+  max-width: 320px;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 24px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25) !important;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   animation: alert-in var(--dur-md) var(--ease-spring);
@@ -952,28 +1105,31 @@ textarea.ios-input {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--sp-12);
+  margin-bottom: 12px;
 }
 
 .apple-calendar-title {
   font-size: var(--fs-headline);
   font-weight: 600;
   color: var(--label-primary);
-  font-family: "SF Pro Text", var(--font);
 }
 
 .apple-calendar-nav-btn {
   background: transparent;
   border: none;
   color: var(--blue);
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: background var(--dur-xs) ease;
+}
+
+.apple-calendar-nav-btn:hover {
+  background: var(--bg-quaternary);
 }
 
 .apple-calendar-nav-btn:active {
@@ -984,19 +1140,16 @@ textarea.ios-input {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   text-align: center;
-  margin-bottom: var(--sp-8);
+  margin-bottom: 8px;
   border-bottom: 1px solid var(--separator);
-  padding-bottom: var(--sp-4);
+  padding-bottom: 6px;
   width: 100%;
 }
 
 .apple-calendar-weekday {
   font-size: var(--fs-caption-2);
   font-weight: 600;
-  color: var(--label-primary);
-  /* Changed to label-primary for high visibility */
-  opacity: 0.8;
-  /* Apple style subtle opacity */
+  color: var(--label-secondary);
   text-transform: uppercase;
   display: flex;
   align-items: center;
@@ -1007,21 +1160,16 @@ textarea.ios-input {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 4px;
-  /* Reduced gap from var(--space-8) (8px) to 4px to prevent overflow */
   justify-items: center;
-  margin-bottom: var(--sp-16);
-  min-height: auto;
-  /* Removed fixed minimum height to eliminate empty gap */
+  margin-bottom: 16px;
   align-content: start;
   width: 100%;
 }
 
 .apple-calendar-day-btn {
   width: 100%;
-  max-width: 38px;
-  /* Restrict size to prevent overflow */
+  max-width: 36px;
   aspect-ratio: 1;
-  /* Perfect circle ratio */
   height: auto;
   border-radius: 50%;
   border: none;
@@ -1038,39 +1186,45 @@ textarea.ios-input {
   padding: 0;
 }
 
+.apple-calendar-day-btn:hover:not(.selected):not(.out-of-month) {
+  background: var(--bg-quaternary);
+}
+
 .apple-calendar-day-btn:active:not(.selected) {
   background: var(--bg-tertiary);
 }
 
 .apple-calendar-day-btn.out-of-month {
   color: var(--label-secondary);
-  opacity: 0.45;
+  opacity: 0.35;
 }
 
-.apple-calendar-day-btn.today {
-  color: var(--blue);
+.apple-calendar-day-btn.today:not(.selected) {
+  background: var(--blue-tint) !important;
+  color: var(--blue) !important;
   font-weight: 700;
 }
 
 .apple-calendar-day-btn.selected {
   background: var(--blue) !important;
   color: #ffffff !important;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 2px 6px var(--blue-tint);
 }
 
 .apple-calendar-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--sp-12);
+  gap: 12px;
   border-top: 1px solid var(--separator);
-  padding-top: var(--sp-12);
+  padding-top: 12px;
 }
 
 .apple-calendar-action-btn {
   flex: 1;
-  height: 44px;
-  border-radius: var(--r-md);
+  height: 40px;
+  border-radius: 12px;
   border: none;
   font-size: var(--fs-subheadline);
   font-weight: 600;
@@ -1079,12 +1233,16 @@ textarea.ios-input {
   align-items: center;
   justify-content: center;
   font-family: inherit;
-  transition: all var(--dur-xs) ease;
+  transition: all 200ms ease;
 }
 
 .apple-calendar-action-btn.cancel {
   background: var(--bg-tertiary);
   color: var(--label-secondary);
+}
+
+.apple-calendar-action-btn.cancel:hover {
+  background: var(--bg-quaternary);
 }
 
 .apple-calendar-action-btn.cancel:active {
@@ -1096,8 +1254,12 @@ textarea.ios-input {
   color: #ffffff;
 }
 
-.apple-calendar-action-btn.save:active {
+.apple-calendar-action-btn.save:hover {
   background: var(--blue-dark);
+}
+
+.apple-calendar-action-btn.save:active {
+  transform: scale(0.98);
 }
 
 /* iOS Settings Picker Style */
@@ -1145,7 +1307,7 @@ textarea.ios-input {
 
 /* iOS Search Bar Style (Minimalist) */
 .ios-search-bar.ios-search-minimal {
-  background: var(--bg-tertiary);
+  background: var(--bg-quaternary);
   border-radius: 10px;
   height: 36px;
   display: flex;
@@ -1207,7 +1369,7 @@ textarea.ios-input {
   height: 24px;
   top: 10px;
   left: 1px;
-  background: var(--color-disabled);
+  background: var(--separator-opaque);
   border-radius: 9999px;
   transition: background 160ms ease-out;
 }
@@ -1226,7 +1388,7 @@ textarea.ios-input {
 }
 
 .ios-switch input:checked+.ios-switch-slider {
-  background: var(--color-secondary);
+  background: var(--green);
 }
 
 .ios-switch input:checked+.ios-switch-slider::before {
@@ -1675,10 +1837,10 @@ tbody tr {
 /* ─── Segmented Control ─── */
 .ios-segmented-control {
   display: flex;
-  background: var(--color-separator);
+  background: var(--separator);
   border-radius: var(--radius-medium);
   padding: 3px;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   align-items: center;
   width: fit-content;
 }
@@ -1691,7 +1853,7 @@ tbody tr {
   font-size: var(--hig-fs-section-header);
   font-weight: 600;
   /* Semibold as per HIG */
-  color: var(--color-text-secondary);
+  color: var(--label-secondary);
   cursor: pointer;
   transition: all var(--dur-xs) var(--ease-out);
   text-align: center;
@@ -1700,8 +1862,8 @@ tbody tr {
 }
 
 .ios-segmented-segment.selected {
-  background: var(--color-background);
-  color: var(--color-primary) !important;
+  background: var(--bg-primary);
+  color: var(--blue) !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
@@ -1716,23 +1878,23 @@ tbody tr {
 }
 
 .ios-segmented-segment.selected.hadir {
-  color: var(--color-primary) !important;
+  color: var(--blue) !important;
 }
 
 .ios-segmented-segment.selected.izin {
-  color: var(--color-primary) !important;
+  color: var(--blue) !important;
 }
 
 .ios-segmented-segment.selected.sakit {
-  color: var(--color-primary) !important;
+  color: var(--blue) !important;
 }
 
 .ios-segmented-segment.selected.alpha {
-  color: var(--color-primary) !important;
+  color: var(--blue) !important;
 }
 
 .ios-segmented-segment.selected.libur {
-  color: var(--color-primary) !important;
+  color: var(--blue) !important;
 }
 
 /* ─── iOS Context Menu ─── */
@@ -2017,7 +2179,7 @@ tbody tr {
   z-index: var(--z-nav);
   padding-top: calc(12px + env(safe-area-inset-top, 0px));
   height: calc(60px + env(safe-area-inset-top, 0px));
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.20);
+  box-shadow: var(--shadow-header);
   box-sizing: border-box;
 }
 
@@ -2040,6 +2202,13 @@ tbody tr {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.20) !important;
   height: 72px !important;
   box-sizing: border-box !important;
+  transition: transform 300ms var(--ease-spring), opacity 300ms ease !important;
+}
+
+.bottom-nav.hidden-by-action {
+  transform: translateY(150%) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 .bottom-nav-item {
@@ -2225,6 +2394,26 @@ tbody tr {
 
 /* Tablet & Mobile: < 1024px */
 @media (max-width: 1023px) {
+  :root {
+    --fs-large-title: 26px;
+    --fs-title-1: 22px;
+    --fs-title-2: 18px;
+    --fs-title-3: 16px;
+    --fs-headline: 15px;
+    --fs-body: 14px;
+    --fs-callout: 13.5px;
+    --fs-subheadline: 13px;
+    
+    --hig-fs-large-title: 26px;
+    --hig-fs-title: 22px;
+    --hig-fs-headline: 15px;
+    --hig-fs-body: 14px;
+    --hig-fs-callout: 13.5px;
+    --hig-fs-subheadline: 13px;
+    --hig-fs-nav-title: 17px;
+    --hig-fs-statistic: 22px;
+  }
+
   .app-layout {
     flex-direction: column;
     height: 100vh;
@@ -2257,7 +2446,7 @@ tbody tr {
   }
 
   .main-content-scrollable {
-    padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .bottom-nav {
@@ -2304,13 +2493,39 @@ tbody tr {
 
 /* Mobile: < 768px */
 @media (max-width: 767px) {
+  :root {
+    --fs-large-title: 22px;
+    --fs-title-1: 19px;
+    --fs-title-2: 17px;
+    --fs-title-3: 15px;
+    --fs-headline: 14px;
+    --fs-body: 13.5px;
+    --fs-callout: 13px;
+    --fs-subheadline: 12px;
+    --fs-footnote: 11px;
+    --fs-caption: 10px;
+    --fs-caption-2: 9.5px;
+    
+    --hig-fs-large-title: 22px;
+    --hig-fs-title: 19px;
+    --hig-fs-headline: 14px;
+    --hig-fs-body: 13.5px;
+    --hig-fs-callout: 13px;
+    --hig-fs-subheadline: 12px;
+    --hig-fs-footnote: 11px;
+    --hig-fs-caption: 10px;
+    --hig-fs-button: 13px;
+    --hig-fs-nav-title: 15px;
+    --hig-fs-statistic: 19px;
+  }
+
   .ios-card {
     padding: var(--sp-16) !important;
   }
 
   .main-content-scrollable {
     padding: var(--sp-12) var(--sp-16);
-    padding-bottom: calc(var(--sp-20) + env(safe-area-inset-bottom, 0px)) !important;
+    padding-bottom: calc(108px + env(safe-area-inset-bottom, 0px)) !important;
     gap: var(--sp-20);
   }
 
@@ -2378,7 +2593,7 @@ tbody tr {
 
 .teacher-stat-chip {
   background: var(--bg-tertiary);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-medium);
   padding: var(--space-8) var(--space-4);
   display: flex;
@@ -2391,7 +2606,7 @@ tbody tr {
 .teacher-stat-chip-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--label-secondary);
   margin-bottom: var(--space-4);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -2403,9 +2618,7 @@ tbody tr {
     grid-template-columns: repeat(3, 1fr) !important;
   }
 
-  .apple-calendar-overlay {
-    padding: calc(44px + env(safe-area-inset-top, 0px) + 2px) var(--space-8) var(--space-8) !important; /* SNUG 2px spacing below dynamic mobile header */
-  }
+
 
   .apple-calendar-day-btn {
     font-size: var(--fs-footnote) !important;
@@ -2428,7 +2641,7 @@ tbody tr {
 
 .hig-metric-card {
   background: var(--bg-secondary);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-large);
   padding: var(--space-12) var(--space-16);
   display: flex;
@@ -2457,7 +2670,7 @@ tbody tr {
 .hig-metric-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--label-secondary);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -2517,15 +2730,15 @@ tbody tr {
 }
 
 .absensi-summary-card.active-hadir {
-  border-color: var(--color-secondary) !important;
+  border-color: var(--green) !important;
 }
 
 .absensi-summary-card.active-alpa {
-  border-color: var(--color-danger) !important;
+  border-color: var(--red) !important;
 }
 
 .absensi-summary-card.active-izin {
-  border-color: var(--color-warning) !important;
+  border-color: var(--yellow) !important;
 }
 
 .absensi-summary-card.active-sakit {
@@ -2533,13 +2746,13 @@ tbody tr {
 }
 
 .absensi-summary-card.active-libur {
-  border-color: var(--color-primary) !important;
+  border-color: var(--blue) !important;
 }
 
 .absensi-summary-count {
   font-size: clamp(18px, 4vw, 24px);
   font-weight: 800;
-  color: var(--color-text-primary);
+  color: var(--label-primary);
   line-height: 1.1;
   margin-bottom: 3px;
 }
@@ -2547,7 +2760,7 @@ tbody tr {
 .absensi-summary-label {
   font-size: clamp(9px, 2vw, 11px);
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--label-secondary);
   letter-spacing: 0.02em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -2582,20 +2795,20 @@ tbody tr {
 .session-config-date {
   font-size: 17px !important;
   font-weight: 600 !important;
-  color: #ffffff !important;
+  color: var(--label-primary) !important;
   line-height: 1.2 !important;
   letter-spacing: -0.01em !important;
 }
 
 .session-config-day {
   font-size: 13px !important;
-  color: #A1A1AA !important;
+  color: var(--label-secondary) !important;
   line-height: 1.2 !important;
   margin-top: 0 !important;
 }
 
 .session-config-divider-line {
-  border-top: 0.5px solid var(--color-separator);
+  border-top: 0.5px solid var(--separator);
   margin: var(--space-12) 0;
 }
 
@@ -2606,7 +2819,7 @@ tbody tr {
 
 .session-config-sesi-label {
   font-size: var(--hig-fs-caption-1);
-  color: var(--color-text-secondary);
+  color: var(--label-secondary);
   font-weight: 500;
   margin-bottom: var(--space-8);
 }
@@ -2636,7 +2849,7 @@ tbody tr {
 
   .session-config-divider-line {
     border-top: none;
-    border-left: 0.5px solid var(--color-separator);
+    border-left: 0.5px solid var(--separator);
     height: 36px;
     margin: 0;
   }
@@ -2719,7 +2932,7 @@ tbody tr {
 
 .ios-bottom-btn:active {
   transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--bg-quaternary);
 }
 
 .ios-bottom-btn-icon {
@@ -2734,7 +2947,7 @@ tbody tr {
 .ios-bottom-btn-label {
   font-size: var(--hig-fs-caption-2);
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--label-primary);
   text-transform: capitalize;
 }
 
@@ -2759,9 +2972,9 @@ tbody tr {
   display: flex;
   flex-direction: column;
   padding: var(--space-20) var(--space-16);
-  background: var(--color-surface);
+  background: var(--bg-secondary);
   border-radius: var(--radius-large);
-  border: 1px solid var(--color-separator);
+  border: 1px solid var(--separator);
   gap: 0;
 }
 
@@ -2785,7 +2998,7 @@ tbody tr {
 .focus-card-name {
   font-size: var(--hig-fs-headline);
   font-weight: 600;
-  color: var(--color-text-primary);
+  color: var(--label-primary);
   margin: 0;
   line-height: var(--hig-lh-headline);
   overflow: hidden;
@@ -2795,7 +3008,7 @@ tbody tr {
 
 .focus-card-subtitle {
   font-size: var(--hig-fs-footnote);
-  color: var(--color-text-secondary);
+  color: var(--label-secondary);
   font-weight: 400;
   margin: 0;
   text-transform: uppercase;
@@ -2804,7 +3017,7 @@ tbody tr {
 
 .focus-card-date-link {
   font-size: var(--hig-fs-subheadline);
-  color: var(--color-primary);
+  color: var(--blue);
   font-weight: 500;
   white-space: nowrap;
   flex-shrink: 0;
@@ -2821,7 +3034,7 @@ tbody tr {
 /* Divider between header and action buttons */
 .focus-card-divider {
   height: 0.5px;
-  background: var(--color-separator);
+  background: var(--separator);
   margin: var(--space-12) 0;
 }
 
@@ -2837,7 +3050,7 @@ tbody tr {
   width: 46px;
   height: 46px;
   border-radius: 12px;
-  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid var(--separator);
   font-size: 1rem;
   font-weight: 700;
   display: flex;
@@ -2846,7 +3059,7 @@ tbody tr {
   cursor: pointer;
   transition: all 0.2s ease-out;
   background: transparent;
-  color: rgba(255, 255, 255, 0.4);
+  color: var(--label-secondary);
   flex: 0 0 auto;
 }
 
@@ -2862,18 +3075,18 @@ tbody tr {
 }
 
 .focus-action-hadir.active {
-  color: var(--color-secondary);
-  border-color: var(--color-secondary);
+  color: var(--green);
+  border-color: var(--green);
 }
 
 .focus-action-alpha.active {
-  color: var(--color-danger);
-  border-color: var(--color-danger);
+  color: var(--red);
+  border-color: var(--red);
 }
 
 .focus-action-izin.active {
-  color: var(--color-warning);
-  border-color: var(--color-warning);
+  color: var(--yellow);
+  border-color: var(--yellow);
 }
 
 .focus-action-sakit.active {
@@ -2882,8 +3095,8 @@ tbody tr {
 }
 
 .focus-action-libur.active {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+  color: var(--blue);
+  border-color: var(--blue);
 }
 
 /* Stacked edge strips behind the main card — thin rounded bars */
@@ -2893,8 +3106,8 @@ tbody tr {
   transform: translateX(-50%);
   height: 8px;
   border-radius: 0 0 var(--radius-large) var(--radius-large);
-  background: var(--color-surface);
-  border: 1px solid var(--color-separator);
+  background: var(--bg-secondary);
+  border: 1px solid var(--separator);
   border-top: none;
   pointer-events: none;
 }
@@ -2980,8 +3193,8 @@ tbody tr {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2995,7 +3208,7 @@ tbody tr {
 
 .circular-glass-icon-btn:active {
   transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--separator-opaque);
 }
 
 .wa-status-badge {
@@ -3004,8 +3217,8 @@ tbody tr {
   gap: 4px;
   font-size: var(--hig-fs-badge);
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border);
   padding: 4px 8px;
   border-radius: 10px;
   backdrop-filter: blur(10px) saturate(180%);
@@ -3016,13 +3229,13 @@ tbody tr {
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  background: rgba(10, 132, 255, 0.15);
+  background: var(--blue-tint);
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--blue);
   flex-shrink: 0;
-  border: 1px solid rgba(10, 132, 255, 0.25);
+  border: 1px solid var(--blue-tint-hover);
 }
 
 .session-config-calendar-icon {
@@ -3041,12 +3254,12 @@ tbody tr {
   flex-shrink: 0;
 }
 
-.avatar-bg-blue { background: rgba(10, 132, 255, 0.15); color: #0A84FF; border: 1px solid rgba(10, 132, 255, 0.25); }
-.avatar-bg-green { background: rgba(48, 209, 88, 0.15); color: #30D158; border: 1px solid rgba(48, 209, 88, 0.25); }
-.avatar-bg-orange { background: rgba(255, 159, 10, 0.15); color: #FF9F0A; border: 1px solid rgba(255, 159, 10, 0.25); }
-.avatar-bg-purple { background: rgba(191, 90, 242, 0.15); color: #BF5AF2; border: 1px solid rgba(191, 90, 242, 0.25); }
-.avatar-bg-pink { background: rgba(255, 45, 85, 0.15); color: #FF2D55; border: 1px solid rgba(255, 45, 85, 0.25); }
-.avatar-bg-teal { background: rgba(100, 210, 255, 0.15); color: #64D2FF; border: 1px solid rgba(100, 210, 255, 0.25); }
+.avatar-bg-blue { background: var(--blue-tint); color: #0A84FF; border: 1px solid var(--blue-tint-hover); }
+.avatar-bg-green { background: var(--green-tint); color: var(--green); border: 1px solid rgba(48, 209, 88, 0.25); }
+.avatar-bg-orange { background: var(--orange-tint); color: var(--orange); border: 1px solid rgba(255, 159, 10, 0.25); }
+.avatar-bg-purple { background: var(--purple-tint); color: var(--purple); border: 1px solid rgba(191, 90, 242, 0.25); }
+.avatar-bg-pink { background: var(--pink-tint); color: var(--pink); border: 1px solid rgba(255, 45, 85, 0.25); }
+.avatar-bg-teal { background: var(--blue-tint); color: var(--blue); border: 1px solid var(--blue-tint-hover); }
 
 /* Override date trigger styles */
 .apple-date-trigger {
@@ -3097,7 +3310,7 @@ tbody tr {
 }
 
 .absensi-summary-card {
-  background: var(--bg-tertiary) !important;
+  background: var(--ios-list-bg) !important;
   border: 1px solid var(--border) !important;
   border-radius: 20px !important;
   padding: 16px !important;
@@ -3154,7 +3367,7 @@ tbody tr {
 .absensi-summary-count {
   font-size: var(--hig-fs-headline) !important;
   font-weight: 700 !important;
-  color: #ffffff !important;
+  color: var(--label-primary) !important;
   line-height: 1.2 !important;
   margin-bottom: 2px !important;
 }
@@ -3175,7 +3388,7 @@ tbody tr {
 
 /* iOS list style cards */
 .ios-list {
-  background: var(--bg-tertiary) !important;
+  background: var(--ios-list-bg) !important;
   border: 1px solid var(--border) !important;
   border-radius: 20px !important;
   box-shadow: var(--shadow-card) !important;
@@ -3189,13 +3402,13 @@ tbody tr {
 
 .ios-list-row.interactive:active,
 .ios-list-row.interactive:hover {
-  background: rgba(255, 255, 255, 0.1) !important;
+  background: var(--bg-quaternary) !important;
 }
 
 /* Segmented control updates */
 .ios-segmented-control {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  background: var(--bg-quaternary) !important;
+  border: 1px solid var(--border) !important;
   border-radius: 12px !important;
   padding: 3px !important;
   display: flex !important;
@@ -3226,7 +3439,7 @@ tbody tr {
   top: 25% !important;
   height: 50% !important;
   width: 1px !important;
-  background: rgba(255, 255, 255, 0.12) !important;
+  background: var(--separator) !important;
   transition: opacity 200ms ease !important;
 }
 
@@ -3247,12 +3460,12 @@ tbody tr {
   font-weight: 600 !important;
   font-size: var(--hig-fs-badge) !important;
 }
-.ios-badge-hadir { background: rgba(48, 209, 88, 0.15) !important; color: var(--green) !important; }
-.ios-badge-izin { background: rgba(255, 214, 10, 0.15) !important; color: var(--yellow) !important; }
-.ios-badge-sakit { background: rgba(191, 90, 242, 0.15) !important; color: var(--purple) !important; }
-.ios-badge-alpha { background: rgba(255, 69, 58, 0.15) !important; color: var(--red) !important; }
-.ios-badge-libur { background: rgba(10, 132, 255, 0.15) !important; color: var(--blue) !important; }
-.ios-badge-belum { background: rgba(255, 255, 255, 0.08) !important; color: var(--label-secondary) !important; }
+.ios-badge-hadir { background: var(--green-tint) !important; color: var(--green) !important; }
+.ios-badge-izin { background: var(--yellow-tint) !important; color: var(--yellow) !important; }
+.ios-badge-sakit { background: var(--purple-tint) !important; color: var(--purple) !important; }
+.ios-badge-alpha { background: var(--red-tint) !important; color: var(--red) !important; }
+.ios-badge-libur { background: var(--blue-tint) !important; color: var(--blue) !important; }
+.ios-badge-belum { background: var(--bg-quaternary) !important; color: var(--label-secondary) !important; }
 
 /* Config card specific layout adjustments */
 .session-config-card {
@@ -3273,13 +3486,13 @@ tbody tr {
   width: 48px !important;
   height: 48px !important;
   border-radius: 12px !important;
-  background: rgba(10, 132, 255, 0.15) !important;
+  background: var(--blue-tint) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   color: var(--blue) !important;
   flex-shrink: 0 !important;
-  border: 1px solid rgba(10, 132, 255, 0.25) !important;
+  border: 1px solid var(--blue-tint-hover) !important;
 }
 
 .session-config-calendar-icon {
@@ -3287,14 +3500,14 @@ tbody tr {
 }
 
 .session-config-divider-line {
-  border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-top: 1px solid var(--separator) !important;
   margin: 20px 0 !important;
 }
 
 .session-config-sesi-label {
   font-size: 17px !important;
   font-weight: 600 !important;
-  color: #ffffff !important;
+  color: var(--label-primary) !important;
 }
 
 /* Info button style */
@@ -3357,11 +3570,11 @@ tbody tr {
 .ios-profile-sheet {
   width: 100% !important;
   max-width: 560px !important;
-  background: rgba(28, 28, 30, 0.82) !important;
+  background: var(--bg-elevated) !important;
   backdrop-filter: blur(40px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
   border-radius: 28px 28px 0 0 !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid var(--border) !important;
   border-bottom: none !important;
   box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35) !important;
   padding: 24px 24px calc(24px + env(safe-area-inset-bottom, 0px)) !important;
@@ -3378,7 +3591,7 @@ tbody tr {
 .ios-profile-sheet .ios-sheet-grabber {
   width: 48px !important;
   height: 5px !important;
-  background: rgba(255, 255, 255, 0.22) !important;
+  background: var(--separator-opaque) !important;
   border-radius: 999px !important;
   align-self: center !important;
   margin-top: 0 !important;
@@ -3395,7 +3608,7 @@ tbody tr {
   min-width: 44px;
   min-height: 44px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-quaternary);
   justify-content: center;
   align-items: center;
   cursor: pointer;
@@ -3404,7 +3617,7 @@ tbody tr {
 }
 
 .ios-profile-close-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--separator-opaque);
 }
 
 .ios-profile-close-btn:active {
@@ -3423,7 +3636,7 @@ tbody tr {
 }
 
 .ios-profile-log-row:hover {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--bg-quaternary);
 }
 
 /* Segmented Control Overrides in Profil Guru Modal */
@@ -3431,7 +3644,7 @@ tbody tr {
   display: flex !important;
   width: 100% !important;
   height: 54px !important;
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: var(--bg-quaternary) !important;
   border-radius: 16px !important;
   padding: 4px !important;
   border: none !important;
@@ -3450,7 +3663,7 @@ tbody tr {
   border-radius: 12px !important;
   font-size: 14px !important;
   font-weight: 600 !important;
-  color: rgba(235, 235, 245, 0.60) !important;
+  color: var(--label-secondary) !important;
   cursor: pointer !important;
   transition: all 250ms ease-out !important;
   height: 100% !important;

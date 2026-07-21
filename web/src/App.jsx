@@ -38,7 +38,9 @@ import {
   HistoryOutlined as HistoryOutlinedIcon,
   ManageAccountsOutlined as ManageAccountsOutlinedIcon,
   SecurityOutlined as SecurityOutlinedIcon,
-  PeopleOutlined as PeopleOutlinedIcon
+  PeopleOutlined as PeopleOutlinedIcon,
+  WbSunnyOutlined as WbSunnyOutlinedIcon,
+  DarkModeOutlined as DarkModeOutlinedIcon
 } from "@mui/icons-material";
 import {
   PersonOutlined as PersonIcon,
@@ -560,6 +562,16 @@ export default function App() {
 
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [showMobileProfileSheet, setShowMobileProfileSheet] = useState(false);
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved) return saved;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
   const [oldPasswordChange, setOldPasswordChange] = useState("");
   const [newPasswordChange, setNewPasswordChange] = useState("");
   const [confirmPasswordChange, setConfirmPasswordChange] = useState("");
@@ -1568,26 +1580,26 @@ export default function App() {
   const qFailed = serverStatus?.queue?.failed ?? 0;
   
   let queueLabel = "Normal";
-  let queueColor = "var(--color-secondary)";
+  let queueColor = "var(--green)";
   if (qFailed > 0) {
     queueLabel = "Error";
-    queueColor = "var(--color-danger)";
+    queueColor = "var(--red)";
   } else if (qProcessing > 0) {
     queueLabel = "Processing";
-    queueColor = "var(--color-primary)";
+    queueColor = "var(--blue)";
   } else if (qPending > 0) {
     queueLabel = `${qPending} Pending`;
-    queueColor = "var(--color-warning)";
+    queueColor = "var(--yellow)";
   }
   
   let sysStatusLabel = "Stabil";
-  let sysStatusColor = "var(--color-secondary)";
+  let sysStatusColor = "var(--green)";
   if (!isWaOnline || qFailed > 0) {
     sysStatusLabel = "Gangguan";
-    sysStatusColor = "var(--color-danger)";
+    sysStatusColor = "var(--red)";
   } else if (!isSchedulerActive || qPending > 0 || qProcessing > 0) {
     sysStatusLabel = "Perlu Perhatian";
-    sysStatusColor = "var(--color-warning)";
+    sysStatusColor = "var(--yellow)";
   }
 
   return (
@@ -1600,12 +1612,12 @@ export default function App() {
           <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "100%", padding: "var(--space-32) var(--space-16)" }}>
             <IOSCard style={{ width: "100%", maxWidth: "380px", padding: "var(--space-24)" }}>
               <div style={{ textAlign: "center", marginBottom: "var(--space-24)" }}>
-                <SchoolOutlinedIcon style={{ fontSize: "2.8rem", color: "var(--color-primary)", marginBottom: "var(--space-8)" }} />
+                <img src="/favicon.svg" alt="Logo" style={{ width: "3.5rem", height: "3.5rem", marginBottom: "var(--space-8)", objectFit: "contain" }} />
                 <h2 style={{ fontSize: "var(--hig-fs-large-title)", fontWeight: 700, letterSpacing: "-0.03em" }}>MA. Miftahul Ulum 2</h2>
               </div>
 
               {loginError && (
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", background: "rgba(255, 59, 48, 0.15)", padding: "var(--space-12) var(--space-16)", borderRadius: "var(--radius-small)", fontSize: "var(--hig-fs-footnote)", color: "var(--color-danger)", marginBottom: "var(--space-16)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", background: "rgba(255, 59, 48, 0.15)", padding: "var(--space-12) var(--space-16)", borderRadius: "var(--radius-small)", fontSize: "var(--hig-fs-footnote)", color: "var(--red)", marginBottom: "var(--space-16)" }}>
                   <ErrorOutlineIcon style={{ fontSize: "1.1rem" }} />
                   {loginError}
                 </div>
@@ -1613,14 +1625,14 @@ export default function App() {
 
               <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
                 <div className="ios-input-wrapper">
-                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>
+                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--label-secondary)" }}>
                     Nomor WhatsApp Pengawas
                   </label>
                   <IOSInput type="tel" placeholder="628123456789" value={phone} onChange={(e) => setPhone(e.target.value)} ariaLabel="Nomor WhatsApp" />
                 </div>
                 
                 <div className="ios-input-wrapper">
-                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>
+                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--label-secondary)" }}>
                     Password
                   </label>
                   <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
@@ -1655,7 +1667,7 @@ export default function App() {
                         background: "none",
                         border: "none",
                         cursor: "pointer",
-                        color: "var(--color-text-secondary)",
+                        color: "var(--label-secondary)",
                         padding: "0",
                         outline: "none"
                       }}
@@ -1683,15 +1695,15 @@ export default function App() {
           <aside className={`sidebar${sidebarCollapsed ? " collapsed" : ""}`}>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-24)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
-                <SchoolOutlinedIcon style={{ fontSize: "1.8rem", color: "var(--color-primary)" }} />
+                <img src="/favicon.svg" alt="Logo" style={{ width: "2.2rem", height: "2.2rem", objectFit: "contain" }} />
                 <div>
                   <h2 style={{ fontSize: "var(--hig-fs-headline)", fontWeight: "600", letterSpacing: "-0.02em" }}>MA. Miftahul Ulum 2</h2>
                 </div>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", padding: "var(--space-8) var(--space-12)", borderRadius: "var(--radius-small)", background: "var(--color-surface)", border: "0.5px solid var(--color-separator)", fontSize: "var(--hig-fs-footnote)" }}>
-                <FiberManualRecordIcon style={{ fontSize: "0.6rem", color: isWaOnline ? "var(--color-secondary)" : "var(--color-danger)" }} />
-                <span style={{ color: "var(--color-text-secondary)", fontWeight: 500 }}>WhatsApp Server · <strong style={{ color: isWaOnline ? "var(--color-secondary)" : "var(--color-danger)" }}>{isWaOnline ? "Online" : "Offline"}</strong></span>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", padding: "var(--space-8) var(--space-12)", borderRadius: "var(--radius-small)", background: "var(--bg-secondary)", border: "0.5px solid var(--separator)", fontSize: "var(--hig-fs-footnote)" }}>
+                <FiberManualRecordIcon style={{ fontSize: "0.6rem", color: isWaOnline ? "var(--green)" : "var(--red)" }} />
+                <span style={{ color: "var(--label-secondary)", fontWeight: 500 }}>WhatsApp Server · <strong style={{ color: isWaOnline ? "var(--green)" : "var(--red)" }}>{isWaOnline ? "Online" : "Offline"}</strong></span>
               </div>
 
               <nav style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
@@ -1714,12 +1726,12 @@ export default function App() {
               </nav>
             </div>
 
-            <div style={{ borderTop: "0.5px solid var(--color-separator)", paddingTop: "var(--space-16)", display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
+            <div style={{ borderTop: "0.5px solid var(--separator)", paddingTop: "var(--space-16)", display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
               <div style={{ padding: "0 4px", marginBottom: "4px" }}>
-                <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-primary)", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
+                <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--label-primary)", display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
                   <PersonOutlineOutlinedIcon style={{ fontSize: "1rem" }} /> {user?.name}
                 </div>
-                <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "2px", paddingLeft: "22px" }}>
+                <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--label-secondary)", marginTop: "2px", paddingLeft: "22px" }}>
                   {user?.phone} · <strong style={{ textTransform: "uppercase" }}>{user?.role || "USER"}</strong>
                 </div>
               </div>
@@ -1735,7 +1747,7 @@ export default function App() {
           </aside>
 
           {/* ═══ 3. BOTTOM TAB BAR (iOS Standard 49px) ═══ */}
-          <nav className="bottom-nav">
+          <nav className={`bottom-nav ${selectedTeachers.length > 0 && isSelectionMode ? "hidden-by-action" : ""}`}>
             {[
               { key: "absensi", icon: <CalendarMonthOutlinedIcon />, label: "Absen", show: true },
               { key: "rekap-bulanan", icon: <BarChartOutlinedIcon />, label: "Rekap", show: true },
@@ -1764,23 +1776,14 @@ export default function App() {
                   <SidebarToggleIcon style={{ fontSize: "1.25rem" }} />
                 </button>
                 <div className="mobile-only circular-glass-icon-btn header-left-icon">
-                  <SchoolOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--label-primary)" }} />
+                  <img src="/favicon.svg" alt="Logo" style={{ width: "1.4rem", height: "1.4rem", objectFit: "contain" }} />
                 </div>
               </div>
-              <h2 className="ios-nav-bar-title" style={{ flex: 1, textAlign: "center", fontSize: "var(--hig-fs-nav-title)", fontWeight: "600", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
-                {activeTab === "absensi" ? (
-                  <>
-                    <span>Absensi Harian</span>
-                    <span className="header-wa-status" style={{ color: isWaOnline ? "var(--green)" : "var(--red)", fontSize: "13px", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "4px" }}>
-                      <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: isWaOnline ? "var(--green)" : "var(--red)", display: "inline-block" }}></span>
-                      {isWaOnline ? "ON" : "OFF"}
-                    </span>
-                  </>
-                ) : (
-                  activeTab === "rekap-bulanan" ? "Rekap Bulanan" :
-                  activeTab === "admin" ? "Panel Kontrol" :
-                  activeTab === "permissions" ? "Pengaturan Akses" : ""
-                )}
+              <h2 className="ios-nav-bar-title" style={{ flex: 1, textAlign: "center", fontSize: "var(--hig-fs-nav-title)", fontWeight: "600" }}>
+                {activeTab === "absensi" ? "Absensi Harian" :
+                 activeTab === "rekap-bulanan" ? "Rekap Bulanan" :
+                 activeTab === "admin" ? "Panel Kontrol" :
+                 activeTab === "permissions" ? "Pengaturan Akses" : ""}
               </h2>
               <div style={{ width: "80px", display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
                 <button
@@ -1797,7 +1800,7 @@ export default function App() {
             {activeTab === "absensi" && (
               <div style={{ flex: 1, overflowY: "auto" }}>
                 <div className="main-content-scrollable">
-                  <div style={{ fontSize: "var(--hig-fs-caption)", color: "var(--color-text-secondary)", padding: "0 var(--space-4)", letterSpacing: "var(--ls-caption)", textTransform: "uppercase" }}>
+                  <div style={{ fontSize: "var(--hig-fs-caption)", color: "var(--label-secondary)", padding: "0 var(--space-4)", letterSpacing: "var(--ls-caption)", textTransform: "uppercase" }}>
                     {getFormattedDateIndo(selectedDate)} • {getFormattedTime()} WIB
                   </div>
                   <div className="absensi-grid">
@@ -1806,7 +1809,7 @@ export default function App() {
                     {showFinishedMessage && isPortraitMobile ? (
                       <div className="focus-card-wrapper animate-spring-slide-down">
                         <IOSCard className="focus-card" style={{ padding: "var(--space-32) var(--space-20)", textAlign: "center", justifyContent: "center" }}>
-                          <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--color-primary)" }}>Absensi seluruh sesi hari ini selesai.</h3>
+                          <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--blue)" }}>Absensi seluruh sesi hari ini selesai.</h3>
                         </IOSCard>
                       </div>
                     ) : panelMode === "FOCUS" && isPortraitMobile ? (
@@ -1994,10 +1997,10 @@ export default function App() {
                         const titleNode = (
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
                             <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                              <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "var(--ls-caption)", color: "var(--color-text-secondary)" }}>
+                              <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 500, textTransform: "uppercase", letterSpacing: "var(--ls-caption)", color: "var(--label-secondary)" }}>
                                 Daftar Kehadiran Guru
                               </span>
-                              <span style={{ fontSize: "var(--hig-fs-subheadline)", color: "var(--color-text-secondary)", fontWeight: 400, textTransform: "none" }}>
+                              <span style={{ fontSize: "var(--hig-fs-subheadline)", color: "var(--label-secondary)", fontWeight: 400, textTransform: "none" }}>
                                 {displayCount} Guru ({absensiStatusFilter === "SEMUA" ? "Semua Status" : absensiStatusFilter})
                               </span>
                             </div>
@@ -2015,9 +2018,9 @@ export default function App() {
                                   alignItems: "center",
                                   gap: "5px",
                                   background: "none",
-                                  border: "1px solid var(--color-primary)",
+                                  border: "1px solid var(--blue)",
                                   borderRadius: "var(--radius-pill)",
-                                  color: "var(--color-primary)",
+                                  color: "var(--blue)",
                                   padding: "6px 14px",
                                   fontSize: "var(--hig-fs-footnote)",
                                   fontWeight: "600",
@@ -2049,13 +2052,13 @@ export default function App() {
                               <IOSList>
                                 {hasScheduleForSelectedJam ? (
                                   <IOSEmptyState 
-                                    icon={<CheckCircleOutlinedIcon style={{ fontSize: "3.5rem", color: "var(--color-secondary)" }} />} 
+                                    icon={<CheckCircleOutlinedIcon style={{ fontSize: "3.5rem", color: "var(--green)" }} />} 
                                     title="Tidak ada data" 
                                     description={`Tidak ada guru dengan status ${absensiStatusFilter} pada sesi ini.`} 
                                   />
                                 ) : (
                                   <IOSEmptyState 
-                                    icon={<SchoolOutlinedIcon style={{ fontSize: "3.5rem", color: "var(--color-text-secondary)" }} />} 
+                                    icon={<SchoolOutlinedIcon style={{ fontSize: "3.5rem", color: "var(--label-secondary)" }} />} 
                                     title="Tidak Ada Jadwal" 
                                     description={`Tidak ada guru yang terdaftar mengajar di KBM Jam ${selectedJam} pada hari ini.`} 
                                   />
@@ -2101,8 +2104,8 @@ export default function App() {
                                             width: "22px",
                                             height: "22px",
                                             borderRadius: "50%",
-                                            border: isSelected ? "none" : "1.5px solid var(--color-text-tertiary)",
-                                            background: isSelected ? "var(--color-primary)" : "transparent",
+                                            border: isSelected ? "none" : "1.5px solid var(--label-tertiary)",
+                                            background: isSelected ? "var(--blue)" : "transparent",
                                             display: "flex",
                                             alignItems: "center",
                                             justifyContent: "center",
@@ -2153,12 +2156,12 @@ export default function App() {
                       <IOSListRow rightContent={
                         <AppleSelect className="ios-picker" value={rekapMonth} onChange={(e) => setRekapMonth(parseInt(e.target.value))} options={indoMonths} ariaLabel="Pilih bulan rekap" />
                       }>
-                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 500, color: "var(--color-text-primary)" }}>Bulan</span>
+                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 500, color: "var(--label-primary)" }}>Bulan</span>
                       </IOSListRow>
                       <IOSListRow rightContent={
                         <AppleSelect className="ios-picker" value={rekapYear} onChange={(e) => setRekapYear(parseInt(e.target.value))} options={[2025, 2026, 2027].map(y => ({ value: y, label: String(y) }))} ariaLabel="Pilih tahun rekap" />
                       }>
-                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 500, color: "var(--color-text-primary)" }}>Tahun</span>
+                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 500, color: "var(--label-primary)" }}>Tahun</span>
                       </IOSListRow>
                       <IOSListRow rightContent={
                         <div className="ios-search-bar ios-search-minimal" style={{ maxWidth: "240px" }}>
@@ -2166,7 +2169,7 @@ export default function App() {
                           <IOSInput type="text" placeholder="Cari nama guru..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} ariaLabel="Cari nama guru" />
                         </div>
                       }>
-                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 500, color: "var(--color-text-primary)" }}>Pencarian</span>
+                        <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 500, color: "var(--label-primary)" }}>Pencarian</span>
                       </IOSListRow>
                     </div>
                   </IOSSection>
@@ -2191,13 +2194,13 @@ export default function App() {
                                 display: "flex", 
                                 alignItems: "center", 
                                 justifyContent: "center", 
-                                color: "var(--color-primary)" 
+                                color: "var(--blue)" 
                               }}>
                                 {syncLoading ? <IOSLoading /> : <SyncOutlinedIcon style={{ fontSize: "1.25rem" }} />}
                               </div>
                               <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--color-text-primary)" }}>Sinkronisasi Data</span>
-                                <span style={{ fontSize: "var(--hig-fs-caption)", color: "var(--color-text-secondary)", fontWeight: 400 }}>Perbarui data absensi dari Google Sheets.</span>
+                                <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--label-primary)" }}>Sinkronisasi Data</span>
+                                <span style={{ fontSize: "var(--hig-fs-caption)", color: "var(--label-secondary)", fontWeight: 400 }}>Perbarui data absensi dari Google Sheets.</span>
                               </div>
                             </div>
                           </IOSListRow>
@@ -2220,13 +2223,13 @@ export default function App() {
                                   display: "flex", 
                                   alignItems: "center", 
                                   justifyContent: "center", 
-                                  color: "var(--color-secondary)" 
+                                  color: "var(--green)" 
                                 }}>
                                   <PictureAsPdfOutlinedIcon style={{ fontSize: "1.25rem" }} />
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                  <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--color-text-primary)" }}>Kirim Laporan PDF</span>
-                                  <span style={{ fontSize: "var(--hig-fs-caption)", color: "var(--color-text-secondary)", fontWeight: 400 }}>Kirim laporan bulanan dalam format PDF.</span>
+                                  <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--label-primary)" }}>Kirim Laporan PDF</span>
+                                  <span style={{ fontSize: "var(--hig-fs-caption)", color: "var(--label-secondary)", fontWeight: 400 }}>Kirim laporan bulanan dalam format PDF.</span>
                                 </div>
                               </div>
                             </IOSListRow>
@@ -2246,13 +2249,13 @@ export default function App() {
                                   display: "flex", 
                                   alignItems: "center", 
                                   justifyContent: "center", 
-                                  color: "var(--color-primary)" 
+                                  color: "var(--blue)" 
                                 }}>
                                   <TableChartOutlinedIcon style={{ fontSize: "1.25rem" }} />
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                  <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--color-text-primary)" }}>Kirim Laporan Excel</span>
-                                  <span style={{ fontSize: "var(--hig-fs-caption)", color: "var(--color-text-secondary)", fontWeight: 400 }}>Kirim laporan bulanan dalam format Excel.</span>
+                                  <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--label-primary)" }}>Kirim Laporan Excel</span>
+                                  <span style={{ fontSize: "var(--hig-fs-caption)", color: "var(--label-secondary)", fontWeight: 400 }}>Kirim laporan bulanan dalam format Excel.</span>
                                 </div>
                               </div>
                             </IOSListRow>
@@ -2295,11 +2298,11 @@ export default function App() {
                                     <th>Nama Guru</th>
                                     <th style={{ textAlign: "center" }}>JTM</th>
                                     <th style={{ textAlign: "center" }}>Jadwal</th>
-                                    <th style={{ textAlign: "center", color: "var(--color-secondary)" }}>Hadir</th>
-                                    <th style={{ textAlign: "center", color: "var(--color-warning)" }}>Izin</th>
-                                    <th style={{ textAlign: "center", color: "var(--color-warning)" }}>Sakit</th>
-                                    <th style={{ textAlign: "center", color: "var(--color-primary)" }}>Libur</th>
-                                    <th style={{ textAlign: "center", color: "var(--color-danger)" }}>Alpa</th>
+                                    <th style={{ textAlign: "center", color: "var(--green)" }}>Hadir</th>
+                                    <th style={{ textAlign: "center", color: "var(--yellow)" }}>Izin</th>
+                                    <th style={{ textAlign: "center", color: "var(--yellow)" }}>Sakit</th>
+                                    <th style={{ textAlign: "center", color: "var(--blue)" }}>Libur</th>
+                                    <th style={{ textAlign: "center", color: "var(--red)" }}>Alpa</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -2307,17 +2310,17 @@ export default function App() {
                                     <tr key={idx}>
                                       <td style={{ paddingLeft: "var(--space-16)" }}>{idx + 1}</td>
                                       <td>
-                                        <span onClick={() => handleTeacherNameClick(row.nama_guru)} style={{ fontWeight: "600", cursor: "pointer", color: "var(--color-primary)", display: "inline-flex", alignItems: "center", gap: "var(--space-4)" }} role="button" tabIndex={0}>
+                                        <span onClick={() => handleTeacherNameClick(row.nama_guru)} style={{ fontWeight: "600", cursor: "pointer", color: "var(--blue)", display: "inline-flex", alignItems: "center", gap: "var(--space-4)" }} role="button" tabIndex={0}>
                                           <PersonOutlineOutlinedIcon style={{ fontSize: "0.9rem" }} /> {row.nama_guru}
                                         </span>
                                       </td>
                                       <td style={{ textAlign: "center" }}>{row.jtm_7_hari}</td>
                                       <td style={{ textAlign: "center" }}>{row.jadwal_wajib}</td>
-                                      <td style={{ textAlign: "center", fontWeight: "700", color: "var(--color-secondary)" }}>{row.hadir}</td>
-                                      <td style={{ textAlign: "center", color: "var(--color-warning)" }}>{row.izin}</td>
-                                      <td style={{ textAlign: "center", color: "var(--color-warning)" }}>{row.sakit}</td>
-                                      <td style={{ textAlign: "center", color: "var(--color-primary)" }}>{row.libur}</td>
-                                      <td style={{ textAlign: "center", fontWeight: "700", color: "var(--color-danger)" }}>{row.alpha}</td>
+                                      <td style={{ textAlign: "center", fontWeight: "700", color: "var(--green)" }}>{row.hadir}</td>
+                                      <td style={{ textAlign: "center", color: "var(--yellow)" }}>{row.izin}</td>
+                                      <td style={{ textAlign: "center", color: "var(--yellow)" }}>{row.sakit}</td>
+                                      <td style={{ textAlign: "center", color: "var(--blue)" }}>{row.libur}</td>
+                                      <td style={{ textAlign: "center", fontWeight: "700", color: "var(--red)" }}>{row.alpha}</td>
                                     </tr>
                                   ))}
                                 </tbody>
@@ -2329,7 +2332,7 @@ export default function App() {
                         {/* Mobile View: Grouped List Row */}
                         <div className="mobile-only" style={{ flexDirection: "column", gap: "var(--space-8)", width: "100%" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0 var(--space-16)" }}>
-                            <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>Ketuk guru untuk melihat detail kehadiran bulanan</span>
+                            <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--label-secondary)" }}>Ketuk guru untuk melihat detail kehadiran bulanan</span>
                             <IOSButton onClick={loadRekapBulanan} disabled={monthlyLoading} variant="tertiary" style={{ minHeight: "36px", padding: "0 4px" }} ariaLabel="Muat ulang rekap">
                               <SyncOutlinedIcon style={{ fontSize: "0.95rem" }} /> Segarkan
                             </IOSButton>
@@ -2339,14 +2342,14 @@ export default function App() {
                               <IOSListRow key={idx} chevron interactive onClick={() => handleTeacherNameClick(row.nama_guru)}
                                 rightContent={
                                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
-                                    <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-secondary)" }}>{row.hadir} H</span>
-                                    {row.alpha > 0 && <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-danger)" }}>{row.alpha} A</span>}
+                                    <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--green)" }}>{row.hadir} H</span>
+                                    {row.alpha > 0 && <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--red)" }}>{row.alpha} A</span>}
                                   </div>
                                 }>
                                 <IOSAvatar name={row.nama_guru} />
                                 <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                                  <span style={{ fontSize: "var(--hig-fs-headline)", fontWeight: "600", color: "var(--color-text-primary)" }}>{row.nama_guru}</span>
-                                  <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>{row.jtm_7_hari} JTM · {row.jadwal_wajib} Sesi Wajib</span>
+                                  <span style={{ fontSize: "var(--hig-fs-headline)", fontWeight: "600", color: "var(--label-primary)" }}>{row.nama_guru}</span>
+                                  <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--label-secondary)" }}>{row.jtm_7_hari} JTM · {row.jadwal_wajib} Sesi Wajib</span>
                                 </div>
                               </IOSListRow>
                             ))}
@@ -2364,7 +2367,7 @@ export default function App() {
             {activeTab === "admin" && (
               <div style={{ flex: 1, overflowY: "auto" }}>
                 <div className="main-content-scrollable">
-                  <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "var(--space-4)", marginBottom: "var(--space-12)" }}>
+                  <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--label-secondary)", marginTop: "var(--space-4)", marginBottom: "var(--space-12)" }}>
                     Manajemen scheduler, siaran pesan, alarm KBM, dan pengawasan sistem
                   </div>
 
@@ -2525,24 +2528,24 @@ export default function App() {
                         {hasPermission('kirim_pengingat_whatsapp') && (
                           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
-                              <NotificationsNoneOutlinedIcon style={{ color: "var(--color-warning)", fontSize: "1.25rem" }} />
-                              <h3 style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: 600, color: "var(--color-text-primary)" }}>Alarm KBM Manual</h3>
+                              <NotificationsNoneOutlinedIcon style={{ color: "var(--yellow)", fontSize: "1.25rem" }} />
+                              <h3 style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: 600, color: "var(--label-primary)" }}>Alarm KBM Manual</h3>
                             </div>
                             <div style={{ 
                               display: "flex", 
                               justifyContent: "space-between", 
                               alignItems: "center", 
-                              background: "var(--color-grouped-bg)", 
+                              background: "var(--bg-tertiary)", 
                               padding: "var(--space-12) var(--space-16)", 
                               borderRadius: "var(--radius-medium)", 
-                              border: "0.5px solid var(--color-separator)", 
+                              border: "0.5px solid var(--separator)", 
                               fontSize: "var(--hig-fs-caption)", 
-                              color: "var(--color-text-secondary)",
+                              color: "var(--label-secondary)",
                               gap: "var(--space-12)",
                               flexWrap: "wrap"
                             }}>
                               <div>
-                                Sistem Waktu: <strong style={{ color: "var(--color-text-primary)" }}>{getFormattedTime()} WIB</strong> · Sasaran: Guru belum absen jam aktif
+                                Sistem Waktu: <strong style={{ color: "var(--label-primary)" }}>{getFormattedTime()} WIB</strong> · Sasaran: Guru belum absen jam aktif
                               </div>
                               <IOSButton onClick={handleSendAlarm} disabled={alarmLoading || !isWaOnline} variant="primary" style={{ height: "32px", padding: "0 var(--space-16)", borderRadius: "var(--radius-medium)", fontSize: "var(--hig-fs-caption)" }} ariaLabel="Kirim alarm pengingat KBM">
                                 {alarmLoading ? <IOSLoading /> : <NotificationsNoneOutlinedIcon style={{ fontSize: "0.9rem", marginRight: "6px" }} />}
@@ -2550,7 +2553,7 @@ export default function App() {
                               </IOSButton>
                             </div>
                             {!isWaOnline && (
-                              <p style={{ color: "var(--color-danger)", fontSize: "var(--hig-fs-badge)", margin: "2px 0 0 0" }}>
+                              <p style={{ color: "var(--red)", fontSize: "var(--hig-fs-badge)", margin: "2px 0 0 0" }}>
                                 ⚠️ WhatsApp Server Offline. Fitur alarm dinonaktifkan.
                               </p>
                             )}
@@ -2559,15 +2562,15 @@ export default function App() {
 
                         {/* Divider */}
                         {hasPermission('kirim_pengingat_whatsapp') && hasPermission('kelola_pengaturan_sistem') && (
-                          <hr style={{ border: "none", borderTop: "0.5px solid var(--color-separator)", margin: "var(--space-8) 0" }} />
+                          <hr style={{ border: "none", borderTop: "0.5px solid var(--separator)", margin: "var(--space-8) 0" }} />
                         )}
 
                         {/* Section 2: Auto Rekap Harian */}
                         {hasPermission('kelola_pengaturan_sistem') && (
                           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
-                              <TuneOutlinedIcon style={{ color: "var(--color-primary)", fontSize: "1.25rem" }} />
-                              <h3 style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: 600, color: "var(--color-text-primary)" }}>Auto Rekap Harian</h3>
+                              <TuneOutlinedIcon style={{ color: "var(--blue)", fontSize: "1.25rem" }} />
+                              <h3 style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: 600, color: "var(--label-primary)" }}>Auto Rekap Harian</h3>
                             </div>
                             
                             <IOSList style={{ margin: 0 }}>
@@ -2575,8 +2578,8 @@ export default function App() {
                                 <IOSSwitch checked={isSchedulerActive} onChange={handleToggleAutoRekap} ariaLabel="Toggle pengiriman rekap otomatis" />
                               }>
                                 <div style={{ display: "flex", flexDirection: "column" }}>
-                                  <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 600, color: "var(--color-text-primary)" }}>Status Scheduler</span>
-                                  <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)" }}>Kirim Pukul 14:30 WIB</span>
+                                  <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 600, color: "var(--label-primary)" }}>Status Scheduler</span>
+                                  <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--label-secondary)" }}>Kirim Pukul 14:30 WIB</span>
                                 </div>
                               </IOSListRow>
                             </IOSList>
@@ -2585,205 +2588,69 @@ export default function App() {
                       </IOSCard>
                     )}
 
-                    {/* Columns to eliminate empty grid gaps */}
-                    <div style={{ 
-                      display: "grid", 
-                      gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", 
-                      gap: "var(--space-16)",
-                      alignItems: "start"
-                    }}>
-                      {/* Left Column: Log Aktivitas & Tentang Sistem */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
-                        {/* Log Aktivitas Card */}
-                        {hasPermission('lihat_log_aktivitas') && (
-                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
-                                <HistoryOutlinedIcon style={{ color: "var(--color-primary)", fontSize: "1.4rem" }} />
-                                <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Log Aktivitas</h3>
-                              </div>
-                              {localLogs.length > 3 && (
-                                <button 
-                                  type="button" 
-                                  onClick={() => setLogLogsExpanded(!logLogsExpanded)} 
-                                  className="btn-ghost" 
-                                  style={{ padding: "2px 8px", fontSize: "var(--hig-fs-badge)", color: "var(--color-primary)", cursor: "pointer", display: "flex", alignItems: "center", border: "none", background: "none", fontWeight: "600" }}
-                                >
-                                  {logLogsExpanded ? "Sembunyikan" : `Lihat Semua (${localLogs.length})`}
-                                </button>
-                              )}
-                            </div>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)", maxHeight: logLogsExpanded ? "280px" : "auto", overflowY: logLogsExpanded ? "auto" : "visible", paddingRight: "4px" }}>
-                              {localLogs.length === 0 ? (
-                                <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", textAlign: "center", padding: "var(--space-16)" }}>
-                                  Belum ada aktivitas tercatat pada sesi ini.
-                                </p>
-                              ) : (
-                                (logLogsExpanded ? localLogs : localLogs.slice(0, 3)).map((log, idx) => (
-                                  <div key={idx} style={{ padding: "var(--space-12)", background: "var(--color-surface)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", fontSize: "var(--hig-fs-footnote)", display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                      <strong style={{ color: "var(--color-text-primary)", textTransform: "uppercase", fontSize: "var(--hig-fs-badge)", letterSpacing: "0.5px", background: "var(--color-grouped-bg)", padding: "2px 6px", borderRadius: "var(--radius-small)" }}>
-                                        {log.action}
-                                      </strong>
-                                      <span style={{ color: "var(--color-text-tertiary)", fontSize: "var(--hig-fs-badge)" }}>
-                                        {new Date(log.timestamp).toLocaleString("id-ID")}
-                                      </span>
-                                    </div>
-                                    <div style={{ color: "var(--color-text-primary)", fontWeight: 500 }}>{log.details}</div>
-                                    <div style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-badge)" }}>
-                                      Pelaku: {log.operator_name} ({log.operator_phone || "Sistem"})
-                                    </div>
-                                  </div>
-                                ))
-                              )}
-                            </div>
-                          </IOSCard>
-                        )}
-
-                        {/* Tentang Sistem Card */}
-                        <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
+                    {/* Broadcast Card */}
+                    {hasPermission('kirim_pengumuman_whatsapp') && (
+                      <div style={{ maxWidth: "600px", margin: "0 auto", width: "100%" }}>
+                        <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", overflow: "visible" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
-                            <InfoOutlinedIcon style={{ color: "var(--color-primary)", fontSize: "1.4rem" }} />
-                            <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Tentang Sistem</h3>
+                            <CampaignOutlinedIcon style={{ color: "var(--blue)", fontSize: "1.4rem" }} />
+                            <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Siaran Pengumuman</h3>
                           </div>
-                          <div style={{ background: "var(--color-grouped-bg)", padding: "var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", lineHeight: "1.5" }}>
-                            Sistem Absensi Digital MA. Miftahul Ulum 2 dirancang untuk mempermudah pencatatan kehadiran guru piket dan guru pengajar secara otomatis serta terintegrasi dengan pengingat WhatsApp.
+                          <div style={{ background: "var(--bg-tertiary)", padding: "var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--separator)", fontSize: "var(--hig-fs-footnote)", color: "var(--label-secondary)" }}>
+                            Kirim pengumuman massal ke seluruh kontak guru atau guru piket hari ini secara instan.
                           </div>
+                          
+                          <form onSubmit={handleSendBroadcast} style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", overflow: "visible" }}>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                              <label htmlFor="broadcast-target" style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--label-secondary)" }}>Sasaran Penerima</label>
+                              <select 
+                                id="broadcast-target"
+                                value={broadcastTarget} 
+                                onChange={(e) => setBroadcastTarget(e.target.value)}
+                                className="ios-input"
+                              >
+                                <option value="ALL">Semua Guru Terdaftar ({contacts.length})</option>
+                                <option value="TODAY">Guru Aktif/Piket Hari Ini</option>
+                              </select>
+                            </div>
+
+                            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
+                              <label htmlFor="broadcast-msg" style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--label-secondary)" }}>Isi Pesan Siaran</label>
+                              <textarea 
+                                id="broadcast-msg"
+                                placeholder="Tulis pesan pengumuman di sini..." 
+                                rows={4} 
+                                value={broadcastMessage} 
+                                onChange={handleBroadcastMessageChange} 
+                                style={{ 
+                                  width: "100%", 
+                                  padding: "var(--space-12)", 
+                                  background: "var(--bg-tertiary)", 
+                                  border: "none", 
+                                  borderRadius: "var(--radius-medium)", 
+                                  color: "var(--label-primary)", 
+                                  fontFamily: "inherit", 
+                                  fontSize: "var(--hig-fs-body)", 
+                                  resize: "none", 
+                                  overflowY: "hidden", 
+                                  boxSizing: "border-box" 
+                                }} 
+                                aria-label="Isi pesan broadcast" 
+                              />
+                            </div>
+                            <IOSButton type="submit" variant="primary" disabled={broadcastLoading || !broadcastMessage.trim() || !isWaOnline} style={{ alignSelf: "flex-end", padding: "0 24px" }} ariaLabel="Kirim broadcast sekarang">
+                              {broadcastLoading ? <IOSLoading /> : <SendOutlinedIcon style={{ fontSize: "1rem" }} />}
+                              {broadcastLoading ? "Mengirim..." : "Siarkan Sekarang"}
+                            </IOSButton>
+                          </form>
+                          {!isWaOnline && (
+                            <p style={{ color: "var(--red)", fontSize: "var(--hig-fs-footnote)" }}>
+                              ⚠️ WhatsApp Server Offline. Fitur siaran dinonaktifkan.
+                            </p>
+                          )}
                         </IOSCard>
                       </div>
-
-                      {/* Right Column: Broadcast & Log Retention */}
-                      <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
-                        {/* Broadcast Card */}
-                        {hasPermission('kirim_pengumuman_whatsapp') && (
-                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", overflow: "visible" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
-                              <CampaignOutlinedIcon style={{ color: "var(--color-primary)", fontSize: "1.4rem" }} />
-                              <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Siaran Pengumuman</h3>
-                            </div>
-                            <div style={{ background: "var(--color-grouped-bg)", padding: "var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>
-                              Kirim pengumuman massal ke seluruh kontak guru atau guru piket hari ini secara instan.
-                            </div>
-                            
-                            <form onSubmit={handleSendBroadcast} style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", overflow: "visible" }}>
-                              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                                <label htmlFor="broadcast-target" style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Sasaran Penerima</label>
-                                <select 
-                                  id="broadcast-target"
-                                  value={broadcastTarget} 
-                                  onChange={(e) => setBroadcastTarget(e.target.value)}
-                                  className="ios-input"
-                                >
-                                  <option value="ALL">Semua Guru Terdaftar ({contacts.length})</option>
-                                  <option value="TODAY">Guru Aktif/Piket Hari Ini</option>
-                                </select>
-                              </div>
-
-                              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                                <label htmlFor="broadcast-msg" style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Isi Pesan Siaran</label>
-                                <textarea 
-                                  id="broadcast-msg"
-                                  placeholder="Tulis pesan pengumuman di sini..." 
-                                  rows={4} 
-                                  value={broadcastMessage} 
-                                  onChange={handleBroadcastMessageChange} 
-                                  style={{ 
-                                    width: "100%", 
-                                    padding: "var(--space-12)", 
-                                    background: "var(--color-grouped-bg)", 
-                                    border: "none", 
-                                    borderRadius: "var(--radius-medium)", 
-                                    color: "var(--color-text-primary)", 
-                                    fontFamily: "inherit", 
-                                    fontSize: "var(--hig-fs-body)", 
-                                    resize: "none", 
-                                    overflowY: "hidden", 
-                                    boxSizing: "border-box" 
-                                  }} 
-                                  aria-label="Isi pesan broadcast" 
-                                />
-                              </div>
-                              <IOSButton type="submit" variant="primary" disabled={broadcastLoading || !broadcastMessage.trim() || !isWaOnline} style={{ alignSelf: "flex-end", padding: "0 24px" }} ariaLabel="Kirim broadcast sekarang">
-                                {broadcastLoading ? <IOSLoading /> : <SendOutlinedIcon style={{ fontSize: "1rem" }} />}
-                                {broadcastLoading ? "Mengirim..." : "Siarkan Sekarang"}
-                              </IOSButton>
-                            </form>
-                            {!isWaOnline && (
-                              <p style={{ color: "var(--color-danger)", fontSize: "var(--hig-fs-footnote)" }}>
-                                ⚠️ WhatsApp Server Offline. Fitur siaran dinonaktifkan.
-                              </p>
-                            )}
-                          </IOSCard>
-                        )}
-
-                        {/* Log Retention & Cleanup Card */}
-                        {hasPermission('kelola_pengaturan_sistem') && (
-                          <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
-                              <HistoryOutlinedIcon style={{ color: "var(--color-warning)", fontSize: "1.4rem" }} />
-                              <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Manajemen Retensi Log</h3>
-                            </div>
-
-                            <div style={{ background: "var(--color-grouped-bg)", padding: "var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>
-                              Konfigurasi pembersihan log aktivitas lokal dan Task Queue di Google Sheets demi optimasi performa.
-                            </div>
-
-                            <IOSList>
-                              <IOSListRow rightContent={
-                                <IOSSwitch checked={autoCleanupActive} onChange={handleToggleAutoCleanup} ariaLabel="Toggle pembersihan otomatis" />
-                              }>
-                                <div style={{ display: "flex", flexDirection: "column" }}>
-                                  <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: 600, color: "var(--color-text-primary)" }}>Pembersihan Otomatis</span>
-                                  <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)" }}>Hapus data lama secara berkala</span>
-                                </div>
-                              </IOSListRow>
-                            </IOSList>
-
-                            {autoCleanupActive && (
-                              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
-                                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Retensi Log Aktivitas</label>
-                                  <select 
-                                    value={logRetentionDays} 
-                                    onChange={(e) => handleLogRetentionChange(Number(e.target.value))}
-                                    className="ios-input"
-                                  >
-                                    <option value={7}>7 Hari</option>
-                                    <option value={30}>30 Hari (Default)</option>
-                                    <option value={90}>90 Hari</option>
-                                    <option value={180}>180 Hari</option>
-                                    <option value={-1}>Tidak Pernah</option>
-                                  </select>
-                                </div>
-
-                                <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
-                                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Retensi Task Queue</label>
-                                  <select 
-                                    value={queueRetentionDays} 
-                                    onChange={(e) => handleQueueRetentionChange(Number(e.target.value))}
-                                    className="ios-input"
-                                  >
-                                    <option value={1}>1 Hari</option>
-                                    <option value={7}>7 Hari (Default)</option>
-                                    <option value={30}>30 Hari</option>
-                                    <option value={-1}>Tidak Pernah</option>
-                                  </select>
-                                </div>
-                              </div>
-                            )}
-
-                            <IOSButton 
-                              onClick={() => setShowCleanupConfirmAlert(true)} 
-                              variant="secondary" 
-                              style={{ width: "100%", marginTop: "4px" }} 
-                              ariaLabel="Bersihkan log lama secara manual"
-                            >
-                              <HistoryOutlinedIcon style={{ fontSize: "1rem", marginRight: "4px" }} /> Bersihkan Sekarang
-                            </IOSButton>
-                          </IOSCard>
-                        )}
-                      </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2793,7 +2660,7 @@ export default function App() {
             {activeTab === "permissions" && user?.role === "SUPERADMIN" && (
               <div style={{ flex: 1, overflowY: "auto" }}>
                 <div className="main-content-scrollable" style={{ paddingLeft: "max(var(--sp-20), env(safe-area-inset-left))", paddingRight: "max(var(--sp-20), env(safe-area-inset-right))" }}>
-                  <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "var(--space-4)", marginBottom: "var(--space-16)" }}>
+                  <div style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--label-secondary)", marginTop: "var(--space-4)", marginBottom: "var(--space-16)" }}>
                     Atur hak akses peran serta kelola data akun guru.
                   </div>
 
@@ -2811,17 +2678,17 @@ export default function App() {
                           display: "grid",
                           gridTemplateColumns: "1fr minmax(56px, 72px) minmax(56px, 72px)",
                           gap: 0,
-                          background: "var(--color-surface)",
-                          borderBottom: "0.5px solid var(--color-separator)",
+                          background: "var(--bg-secondary)",
+                          borderBottom: "0.5px solid var(--separator)",
                           padding: "var(--space-12) var(--space-16)"
                         }}>
-                          <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", display: "flex", alignItems: "center" }}>
+                          <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--label-secondary)", display: "flex", alignItems: "center" }}>
                             Fitur / Hak Akses
                           </span>
-                          <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--label-secondary)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             ADMIN
                           </span>
-                          <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--color-text-secondary)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <span style={{ fontSize: "var(--hig-fs-subheadline)", fontWeight: "600", color: "var(--label-secondary)", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center" }}>
                             USER
                           </span>
                         </div>
@@ -2833,11 +2700,11 @@ export default function App() {
                             gridTemplateColumns: "1fr minmax(56px, 72px) minmax(56px, 72px)",
                             gap: 0,
                             padding: "var(--space-12) var(--space-16)",
-                            borderBottom: "0.5px solid var(--color-separator)",
+                            borderBottom: "0.5px solid var(--separator)",
                             alignItems: "center",
                             minHeight: "48px"
                           }}>
-                            <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: "500", color: "var(--color-text-primary)", paddingRight: "var(--space-8)" }}>
+                            <span style={{ fontSize: "var(--hig-fs-body)", fontWeight: "500", color: "var(--label-primary)", paddingRight: "var(--space-8)" }}>
                               {p.label}
                             </span>
                             <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
@@ -2865,55 +2732,55 @@ export default function App() {
                         <IOSCard style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)" }}>
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)" }}>
-                              <ManageAccountsOutlinedIcon style={{ color: "var(--color-secondary)", fontSize: "1.4rem" }} />
+                              <ManageAccountsOutlinedIcon style={{ color: "var(--green)", fontSize: "1.4rem" }} />
                               <h3 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600 }}>Kelola Akun Guru</h3>
                             </div>
                             <button 
                               type="button" 
                               onClick={() => setShowManageTeacherModal(true)} 
                               className="btn-ghost" 
-                              style={{ padding: "2px 8px", fontSize: "var(--hig-fs-badge)", color: "var(--color-primary)", cursor: "pointer", display: "flex", alignItems: "center", border: "none", background: "none", fontWeight: "600" }}
+                              style={{ padding: "2px 8px", fontSize: "var(--hig-fs-badge)", color: "var(--blue)", cursor: "pointer", display: "flex", alignItems: "center", border: "none", background: "none", fontWeight: "600" }}
                             >
                               Lihat Semua
                             </button>
                           </div>
                           
                           {/* Account Summary Stats Indicators */}
-                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)", background: "var(--color-surface)", padding: "var(--space-8) var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", textAlign: "center" }}>
+                          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "var(--space-4)", background: "var(--bg-secondary)", padding: "var(--space-8) var(--space-12)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--separator)", textAlign: "center" }}>
                             <div>
-                              <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-secondary)" }}>
+                              <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--green)" }}>
                                 {getTeacherAccountSummary().userCount}
                               </div>
-                              <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Guru</div>
+                              <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--label-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Guru</div>
                             </div>
-                            <div style={{ borderLeft: "0.5px solid var(--color-separator)", borderRight: "0.5px solid var(--color-separator)" }}>
-                              <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-primary)" }}>
+                            <div style={{ borderLeft: "0.5px solid var(--separator)", borderRight: "0.5px solid var(--separator)" }}>
+                              <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--blue)" }}>
                                 {getTeacherAccountSummary().adminCount}
                               </div>
-                              <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Admin</div>
+                              <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--label-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Admin</div>
                             </div>
                             <div>
-                              <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--color-primary)" }}>
+                              <div style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "700", color: "var(--blue)" }}>
                                 {getTeacherAccountSummary().superadminCount}
                               </div>
-                              <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Super</div>
+                              <div style={{ fontSize: "var(--hig-fs-badge)", color: "var(--label-secondary)", fontWeight: "500", textTransform: "uppercase" }}>Super</div>
                             </div>
                           </div>
 
                           {/* Recent Teacher List Summary (Latest 3 Teachers) */}
                           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-8)", marginTop: "4px" }}>
                             {contacts.length === 0 ? (
-                              <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", textAlign: "center", padding: "var(--space-8)" }}>
+                              <p style={{ color: "var(--label-secondary)", fontSize: "var(--hig-fs-footnote)", textAlign: "center", padding: "var(--space-8)" }}>
                                 Belum ada data guru pengajar.
                               </p>
                             ) : (
                               contacts.slice(0, 3).map((t, idx) => (
-                                <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-8) var(--space-12)", background: "var(--color-surface)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--color-separator)", gap: "var(--space-8)" }}>
+                                <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "var(--space-8) var(--space-12)", background: "var(--bg-secondary)", borderRadius: "var(--radius-medium)", border: "0.5px solid var(--separator)", gap: "var(--space-8)" }}>
                                   <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", minWidth: 0, flex: 1 }}>
                                     <IOSAvatar name={t.nama_guru || t.nama} />
                                     <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-                                      <span style={{ fontWeight: "600", color: "var(--color-text-primary)", fontSize: "var(--hig-fs-footnote)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.nama_guru || t.nama}</span>
-                                      <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)" }}>{t.no_wa || t.nomor_wa || "-"}</span>
+                                      <span style={{ fontWeight: "600", color: "var(--label-primary)", fontSize: "var(--hig-fs-footnote)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.nama_guru || t.nama}</span>
+                                      <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--label-secondary)" }}>{t.no_wa || t.nomor_wa || "-"}</span>
                                     </div>
                                   </div>
                                   <IOSButton 
@@ -2939,15 +2806,15 @@ export default function App() {
             {/* Bottom Action Bar (Bulk Actions) */}
             <div className={`ios-bottom-action-bar ${selectedTeachers.length > 0 && isSelectionMode ? "visible" : "hidden"}`}>
               <button className="ios-bottom-btn" onClick={() => handleBulkChangeStatus("HADIR")}>
-                <span className="ios-bottom-btn-icon" style={{ color: "var(--color-secondary)" }}>●</span>
+                <span className="ios-bottom-btn-icon" style={{ color: "var(--green)" }}>●</span>
                 <span className="ios-bottom-btn-label">Hadir</span>
               </button>
               <button className="ios-bottom-btn" onClick={() => handleBulkChangeStatus("ALPHA")}>
-                <span className="ios-bottom-btn-icon" style={{ color: "var(--color-danger)" }}>●</span>
+                <span className="ios-bottom-btn-icon" style={{ color: "var(--red)" }}>●</span>
                 <span className="ios-bottom-btn-label">Alpa</span>
               </button>
               <button className="ios-bottom-btn" onClick={() => handleBulkChangeStatus("IZIN")}>
-                <span className="ios-bottom-btn-icon" style={{ color: "var(--color-warning)" }}>●</span>
+                <span className="ios-bottom-btn-icon" style={{ color: "var(--yellow)" }}>●</span>
                 <span className="ios-bottom-btn-label">Izin</span>
               </button>
               <button className="ios-bottom-btn" onClick={() => handleBulkChangeStatus("SAKIT")}>
@@ -2955,7 +2822,7 @@ export default function App() {
                 <span className="ios-bottom-btn-label">Sakit</span>
               </button>
               <button className="ios-bottom-btn" onClick={() => handleBulkChangeStatus("LIBUR")}>
-                <span className="ios-bottom-btn-icon" style={{ color: "var(--color-primary)" }}>●</span>
+                <span className="ios-bottom-btn-icon" style={{ color: "var(--blue)" }}>●</span>
                 <span className="ios-bottom-btn-label">Libur</span>
               </button>
             </div>
@@ -2965,44 +2832,44 @@ export default function App() {
           {/* ═══ 5. IOS SHEET: Detail Guru ═══ */}
           <IOSSheet isOpen={!!teacherDetail} onClose={() => setTeacherDetail(null)} className="ios-profile-sheet">
             {teacherDetail && (
-              <div style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
                 {/* 1. Header Ringkas (Apple Style) */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "rgba(235, 235, 245, 0.60)" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--label-secondary)" }}>
                     <PersonOutlineOutlinedIcon style={{ fontSize: "1.1rem" }} />
-                    <span style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Profil Guru</span>
+                    <span style={{ fontSize: "var(--fs-caption-2)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Profil Guru</span>
                   </div>
                   <button onClick={() => setTeacherDetail(null)} className="ios-profile-close-btn" aria-label="Tutup">
-                    <CloseOutlinedIcon style={{ fontSize: "1rem", color: "rgba(235, 235, 245, 0.60)" }} />
+                    <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--label-secondary)" }} />
                   </button>
                 </div>
 
                 {/* 2. Nama & Kontak Utama (Native iOS 14 Style) */}
-                <div style={{ display: "flex", alignItems: "center", gap: "16px", paddingBottom: "20px", borderBottom: "1px solid rgba(255, 255, 255, 0.06)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", paddingBottom: "16px", borderBottom: "1px solid var(--separator)" }}>
                   <div style={{
-                    width: "64px",
-                    height: "64px",
+                    width: "44px",
+                    height: "44px",
                     borderRadius: "50%",
-                    background: "linear-gradient(135deg, #2563EB, #5B7CFA)",
-                    border: "1px solid #FFFFFF",
-                    boxShadow: "0 8px 25px rgba(37,99,235,.35)",
+                    background: "linear-gradient(135deg, var(--blue), var(--purple))",
+                    border: "1px solid var(--border)",
+                    boxShadow: "0 4px 12px var(--blue-tint)",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "#FFFFFF",
+                    color: "var(--label-primary)",
                     fontWeight: "700",
-                    fontSize: "22px",
+                    fontSize: "var(--fs-headline)",
                     flexShrink: 0
                   }}>
                     {getInitials(teacherDetail.name)}
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
                     <h2 style={{
-                      fontSize: "28px",
+                      fontSize: "var(--fs-title-2)",
                       fontWeight: "700",
-                      color: "#FFFFFF",
+                      color: "var(--label-primary)",
                       letterSpacing: "-0.5px",
-                      lineHeight: "1.15",
+                      lineHeight: "1.2",
                       margin: 0,
                       whiteSpace: "nowrap",
                       overflow: "hidden",
@@ -3010,8 +2877,8 @@ export default function App() {
                     }}>
                       {teacherDetail.name}
                     </h2>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "rgba(235, 235, 245, 0.60)", fontSize: "14px", marginTop: "4px" }}>
-                      <PhoneAndroidOutlinedIcon style={{ fontSize: "1rem", color: "rgba(235, 235, 245, 0.60)" }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--label-secondary)", fontSize: "var(--fs-subheadline)", marginTop: "4px" }}>
+                      <PhoneAndroidOutlinedIcon style={{ fontSize: "1rem", color: "var(--label-secondary)" }} />
                       <span>{teacherDetail.phone || "-"}</span>
                     </div>
                   </div>
@@ -3020,7 +2887,7 @@ export default function App() {
                 {/* Optional Attendance Segmented Input */}
                 {teacherDetail.row && (
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                    <span style={{ fontSize: "13px", fontWeight: "600", color: "rgba(235, 235, 245, 0.60)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    <span style={{ fontSize: "var(--fs-caption-2)", fontWeight: "600", color: "var(--label-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                       Input Absensi Jam {selectedJam}
                     </span>
                     <div style={{ width: "100%" }}>
@@ -3042,183 +2909,165 @@ export default function App() {
                   </div>
                 )}
 
-                {/* 3. Ringkasan Kehadiran (Stat Chips) */}
+                {/* 3. Ringkasan Kehadiran (Stat Chips with Semantic Colors) */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <span style={{ fontSize: "20px", fontWeight: "600", color: "#FFFFFF" }}>
+                  <span style={{ fontSize: "var(--fs-title-3)", fontWeight: "600", color: "var(--label-primary)" }}>
                     Ringkasan Kehadiran Bulan Ini
                   </span>
                   
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "10px", marginTop: "4px" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: "8px", marginTop: "4px" }}>
                     {[
-                      { l: "Hadir", v: teacherDetail.stats.hadir, c: "hadir", color: "#30D158" },
-                      { l: "Izin", v: teacherDetail.stats.izin, c: "izin", color: "#FFD60A" },
-                      { l: "Sakit", v: teacherDetail.stats.sakit, c: "sakit", color: "#BF5AF2" },
-                      { l: "Libur", v: teacherDetail.stats.libur, c: "libur", color: "#0A84FF" },
-                      { l: "Alpa", v: teacherDetail.stats.alpha, c: "alpha", color: "#FF453A" }
+                      { l: "Hadir", v: teacherDetail.stats.hadir, c: "hadir", color: "var(--green)", bg: "var(--green-tint)", border: "rgba(48, 209, 88, 0.2)" },
+                      { l: "Izin", v: teacherDetail.stats.izin, c: "izin", color: "var(--yellow)", bg: "var(--yellow-tint)", border: "rgba(255, 214, 10, 0.2)" },
+                      { l: "Sakit", v: teacherDetail.stats.sakit, c: "sakit", color: "var(--purple)", bg: "var(--purple-tint)", border: "rgba(191, 90, 242, 0.2)" },
+                      { l: "Libur", v: teacherDetail.stats.libur, c: "libur", color: "var(--blue)", bg: "var(--blue-tint)", border: "rgba(10, 132, 255, 0.2)" },
+                      { l: "Alpa", v: teacherDetail.stats.alpha, c: "alpha", color: "var(--red)", bg: "var(--red-tint)", border: "rgba(255, 69, 58, 0.2)" }
                     ].map(s => (
                       <div key={s.c} style={{
-                        background: "rgba(255, 255, 255, 0.04)",
-                        border: "1px solid rgba(255, 255, 255, 0.05)",
-                        borderRadius: "18px",
-                        aspectRatio: "1 / 1",
+                        background: s.bg,
+                        border: `1px solid ${s.border}`,
+                        borderRadius: "14px",
                         display: "flex",
                         flexDirection: "column",
                         alignItems: "center",
                         justifyContent: "center",
                         boxSizing: "border-box",
-                        padding: "4px"
+                        padding: "8px 4px",
+                        minHeight: "64px"
                       }}>
-                        <span style={{ fontSize: "11px", fontWeight: "600", color: "rgba(235, 235, 245, 0.60)", marginBottom: "2px", textAlign: "center" }}>
+                        <span style={{ fontSize: "var(--fs-caption-2)", fontWeight: "600", color: "var(--label-secondary)", marginBottom: "2px", textAlign: "center" }}>
                           {s.l}
                         </span>
-                        <span style={{ fontSize: "22px", fontWeight: "700", color: s.color, textAlign: "center", lineHeight: "1.1" }}>
+                        <span style={{ fontSize: "var(--fs-title-2)", fontWeight: "700", color: s.color, textAlign: "center", lineHeight: "1.1" }}>
                           {s.v}
                         </span>
                       </div>
                     ))}
                   </div>
 
-                  {/* 4. Informasi Kewajiban (iOS Row Style) */}
-                  <div style={{
-                    height: "72px",
-                    background: "rgba(255, 255, 255, 0.04)",
-                    border: "1px solid rgba(255, 255, 255, 0.05)",
-                    borderRadius: "20px",
-                    padding: "0 16px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginTop: "8px",
-                    boxSizing: "border-box"
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                      <div style={{
-                        width: "36px",
-                        height: "36px",
-                        borderRadius: "10px",
-                        background: "rgba(10, 132, 255, 0.15)",
-                        color: "#0A84FF",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
-                      }}>
-                        <SchoolOutlinedIcon style={{ fontSize: "1.2rem" }} />
+                  {/* 4. Informasi Kewajiban (Grouped iOS Style List) */}
+                  <div className="ios-list" style={{ marginTop: "8px" }}>
+                    <div className="ios-list-row" style={{ minHeight: "56px", padding: "12px 16px", border: "none" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                        <div style={{
+                          width: "36px",
+                          height: "36px",
+                          borderRadius: "10px",
+                          background: "var(--blue-tint)",
+                          color: "var(--blue)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center"
+                        }}>
+                          <SchoolOutlinedIcon style={{ fontSize: "1.2rem" }} />
+                        </div>
+                        <span style={{ fontSize: "var(--fs-subheadline)", fontWeight: "500", color: "var(--label-primary)" }}>
+                          Beban Kerja Wajib
+                        </span>
                       </div>
-                      <span style={{ fontSize: "15px", fontWeight: "500", color: "#FFFFFF" }}>
-                        Beban Kerja Wajib
-                      </span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <span style={{ fontSize: "13px", color: "rgba(235, 235, 245, 0.60)", fontWeight: "500" }}>
-                        {teacherDetail.stats.jtm_7_hari} JTM/Mg · {teacherDetail.stats.jadwal_wajib} JTM/Blnd
-                      </span>
-                      <ChevronRightOutlinedIcon style={{ fontSize: "1.1rem", color: "rgba(255, 255, 255, 0.2)" }} />
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span style={{ fontSize: "var(--fs-footnote)", color: "var(--label-secondary)", fontWeight: "500" }}>
+                          {teacherDetail.stats.jtm_7_hari || 0} JTM/Mg · {teacherDetail.stats.jadwal_wajib || 0} JTM/Blnd
+                        </span>
+                        <ChevronRightOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--label-tertiary)" }} />
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* 5. Log Terakhir (Grouped Apple List Style) */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                  <span style={{ fontSize: "13px", fontWeight: "600", color: "rgba(235, 235, 245, 0.60)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  <span style={{ fontSize: "var(--fs-caption-2)", fontWeight: "600", color: "var(--label-secondary)", textTransform: "uppercase", letterSpacing: "0.5px" }}>
                     Log Kehadiran Terbaru (Maks. 10)
                   </span>
                   
                   {teacherDetail.logs.length === 0 ? (
                     <div style={{
-                      background: "rgba(255, 255, 255, 0.04)",
-                      border: "1px solid rgba(255, 255, 255, 0.05)",
-                      borderRadius: "22px",
+                      background: "var(--bg-secondary)",
+                      border: "1px solid var(--separator)",
+                      borderRadius: "16px",
                       padding: "24px 0",
                       textAlign: "center",
-                      color: "rgba(235, 235, 245, 0.60)",
-                      fontSize: "14px"
+                      color: "var(--label-secondary)",
+                      fontSize: "var(--fs-footnote)"
                     }}>
                       Belum ada log absensi tercatat.
                     </div>
                   ) : (
-                    <div className="ios-profile-logs-container" style={{
-                      background: "rgba(255, 255, 255, 0.04)",
-                      borderRadius: "22px",
-                      border: "1px solid rgba(255, 255, 255, 0.05)",
-                      overflow: "hidden",
-                      boxSizing: "border-box"
-                    }}>
+                    <div className="ios-list" style={{ overflow: "hidden" }}>
                       <div style={{ maxHeight: "220px", overflowY: "auto" }}>
                         {teacherDetail.logs.map((log, i) => {
                           const status = (log.status || "").toUpperCase();
-                          let badgeColor = "#30D158";
-                          let badgeBg = "rgba(48, 209, 88, 0.15)";
-                          let glowColor = "rgba(48, 209, 88, 0.3)";
+                          let badgeColor = "var(--green)";
+                          let badgeBg = "var(--green-tint)";
+                          let glowColor = "rgba(48, 209, 88, 0.2)";
                           if (status === "IZIN") {
-                            badgeColor = "#FFD60A";
-                            badgeBg = "rgba(255, 214, 10, 0.15)";
-                            glowColor = "rgba(255, 214, 10, 0.3)";
+                            badgeColor = "var(--yellow)";
+                            badgeBg = "var(--yellow-tint)";
+                            glowColor = "rgba(255, 214, 10, 0.2)";
                           } else if (status === "SAKIT") {
-                            badgeColor = "#BF5AF2";
-                            badgeBg = "rgba(191, 90, 242, 0.15)";
-                            glowColor = "rgba(191, 90, 242, 0.3)";
+                            badgeColor = "var(--purple)";
+                            badgeBg = "var(--purple-tint)";
+                            glowColor = "rgba(191, 90, 242, 0.2)";
                           } else if (status === "LIBUR") {
-                            badgeColor = "#0A84FF";
-                            badgeBg = "rgba(10, 132, 255, 0.15)";
-                            glowColor = "rgba(10, 132, 255, 0.3)";
+                            badgeColor = "var(--blue)";
+                            badgeBg = "var(--blue-tint)";
+                            glowColor = "rgba(10, 132, 255, 0.2)";
                           } else if (status === "ALPHA") {
-                            badgeColor = "#FF453A";
-                            badgeBg = "rgba(255, 69, 58, 0.15)";
-                            glowColor = "rgba(255, 69, 58, 0.3)";
+                            badgeColor = "var(--red)";
+                            badgeBg = "var(--red-tint)";
+                            glowColor = "rgba(255, 69, 58, 0.2)";
                           } else if (status === "BELUM") {
-                            badgeColor = "rgba(235, 235, 245, 0.60)";
-                            badgeBg = "rgba(255, 255, 255, 0.08)";
-                            glowColor = "rgba(255, 255, 255, 0.1)";
+                            badgeColor = "var(--label-secondary)";
+                            badgeBg = "var(--bg-quaternary)";
+                            glowColor = "rgba(255, 255, 255, 0.05)";
                           }
 
                           return (
-                            <div key={i} className="ios-profile-log-row" style={{
-                              height: "72px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              padding: "0 16px",
-                              boxSizing: "border-box",
-                              borderBottom: i < teacherDetail.logs.length - 1 ? "1px solid rgba(255, 255, 255, 0.05)" : "none",
-                              transition: "background 200ms ease"
+                            <div key={i} className="ios-list-row interactive" style={{
+                              padding: "10px 16px",
+                              minHeight: "64px",
+                              cursor: "pointer",
+                              borderBottom: i < teacherDetail.logs.length - 1 ? "1px solid var(--separator)" : "none"
                             }}>
                               <div style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: 0, flex: 1 }}>
                                 <div style={{
                                   width: "36px",
                                   height: "36px",
                                   borderRadius: "50%",
-                                  background: "rgba(255, 255, 255, 0.05)",
-                                  color: "rgba(255, 255, 255, 0.4)",
+                                  background: "var(--bg-tertiary)",
+                                  color: "var(--label-secondary)",
                                   display: "flex",
                                   alignItems: "center",
-                                  justifyContent: "center"
+                                  justifyContent: "center",
+                                  flexShrink: 0
                                 }}>
                                   <CalendarMonthOutlinedIcon style={{ fontSize: "1.1rem" }} />
                                 </div>
                                 <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0 }}>
-                                  <span style={{ color: "#FFFFFF", fontSize: "14px", fontWeight: "600" }}>
-                                    {log.tanggal} <span style={{ color: "rgba(235, 235, 245, 0.60)", fontWeight: "400", fontSize: "13px" }}>({capitalize(log.hari)})</span>
+                                  <span style={{ color: "var(--label-primary)", fontSize: "var(--fs-subheadline)", fontWeight: "600" }}>
+                                    {log.tanggal} <span style={{ color: "var(--label-secondary)", fontWeight: "400", fontSize: "var(--fs-footnote)" }}>({capitalize(log.hari)})</span>
                                   </span>
-                                  <span style={{ color: "rgba(235, 235, 245, 0.60)", fontSize: "12px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                                  <span style={{ color: "var(--label-secondary)", fontSize: "var(--fs-footnote)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                                     Jam {log.jam} · Kelas {log.kelas || "-"} · {log.mapel || "-"}
                                   </span>
                                 </div>
                               </div>
-                              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                                 <span style={{
                                   color: badgeColor,
                                   background: badgeBg,
                                   boxShadow: `0 2px 8px ${glowColor}`,
-                                  padding: "6px 12px",
-                                  borderRadius: "999px",
-                                  fontSize: "11px",
+                                  padding: "4px 10px",
+                                  borderRadius: "var(--r-pill)",
+                                  fontSize: "var(--fs-caption-2)",
                                   fontWeight: "700",
                                   textTransform: "uppercase",
                                   letterSpacing: "0.5px"
                                 }}>
                                   {status}
                                 </span>
-                                <ChevronRightOutlinedIcon style={{ fontSize: "1rem", color: "rgba(255, 255, 255, 0.15)" }} />
+                                <ChevronRightOutlinedIcon style={{ fontSize: "1rem", color: "var(--label-quaternary)" }} />
                               </div>
                             </div>
                           );
@@ -3234,13 +3083,14 @@ export default function App() {
                   alignItems: "center",
                   justifyContent: "center",
                   gap: "8px",
-                  background: "rgba(255, 255, 255, 0.05)",
-                  padding: "10px 16px",
-                  borderRadius: "999px",
+                  background: "var(--bg-tertiary)",
+                  border: "1px solid var(--border)",
+                  padding: "8px 16px",
+                  borderRadius: "var(--r-pill)",
                   boxSizing: "border-box"
                 }}>
-                  <InfoOutlinedIcon style={{ fontSize: "1.1rem", color: "#0A84FF" }} />
-                  <span style={{ fontSize: "12px", color: "rgba(235, 235, 245, 0.60)", fontWeight: "500" }}>
+                  <InfoOutlinedIcon style={{ fontSize: "1rem", color: "var(--blue)" }} />
+                  <span style={{ fontSize: "var(--fs-footnote)", color: "var(--label-secondary)", fontWeight: "500" }}>
                     Data kehadiran diperbarui secara real-time
                   </span>
                 </div>
@@ -3301,7 +3151,7 @@ export default function App() {
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", color: "var(--color-text-secondary)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", color: "var(--label-secondary)" }}>
                   <KeyOutlinedIcon style={{ fontSize: "1.25rem" }} />
                   <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Ubah Kata Sandi</span>
                 </div>
@@ -3310,26 +3160,26 @@ export default function App() {
                   setOldPasswordChange("");
                   setNewPasswordChange("");
                   setConfirmPasswordChange("");
-                }} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--color-grouped-bg)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none" }}>
-                  <CloseOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--color-text-secondary)" }} />
+                }} className="ios-profile-close-btn" aria-label="Tutup">
+                  <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--label-secondary)" }} />
                 </button>
               </div>
 
               <form onSubmit={handleConfirmChangePassword} style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
                 <div className="ios-input-wrapper">
-                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Kata Sandi Lama</label>
+                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--label-secondary)" }}>Kata Sandi Lama</label>
                   <input type="password" value={oldPasswordChange} onChange={(e) => setOldPasswordChange(e.target.value)} required placeholder="••••••••"
                     className="ios-input" />
                 </div>
                 
                 <div className="ios-input-wrapper">
-                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Kata Sandi Baru</label>
+                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--label-secondary)" }}>Kata Sandi Baru</label>
                   <input type="password" value={newPasswordChange} onChange={(e) => setNewPasswordChange(e.target.value)} required placeholder="Minimal 6 karakter"
                     className="ios-input" />
                 </div>
 
                 <div className="ios-input-wrapper">
-                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--color-text-secondary)" }}>Konfirmasi Kata Sandi Baru</label>
+                  <label style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: "600", color: "var(--label-secondary)" }}>Konfirmasi Kata Sandi Baru</label>
                   <input type="password" value={confirmPasswordChange} onChange={(e) => setConfirmPasswordChange(e.target.value)} required placeholder="Ulangi kata sandi baru"
                     className="ios-input" />
                 </div>
@@ -3359,19 +3209,19 @@ export default function App() {
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
                 <div style={{ display: "flex", flexDirection: "column", gap: "2px", minWidth: 0, flex: 1, paddingRight: "8px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", color: "var(--color-text-primary)" }}>
-                    <ManageAccountsOutlinedIcon style={{ fontSize: "1.5rem", color: "var(--color-secondary)", flexShrink: 0 }} />
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", color: "var(--label-primary)" }}>
+                    <ManageAccountsOutlinedIcon style={{ fontSize: "1.5rem", color: "var(--green)", flexShrink: 0 }} />
                     <span style={{ fontSize: "var(--hig-fs-title)", fontWeight: 700, letterSpacing: "-0.5px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Manajemen Guru</span>
                   </div>
-                  <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--color-text-secondary)", marginTop: "2px" }}>
+                  <span style={{ fontSize: "var(--hig-fs-footnote)", color: "var(--label-secondary)", marginTop: "2px" }}>
                     Cari kontak guru dan reset kata sandi login guru pengajar.
                   </span>
                 </div>
                 <button onClick={() => {
                   setShowManageTeacherModal(false);
                   setSearchTeacherQuery("");
-                }} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--color-grouped-bg)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none", flexShrink: 0 }}>
-                  <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }} />
+                }} className="ios-profile-close-btn" aria-label="Tutup">
+                  <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--label-secondary)" }} />
                 </button>
               </div>
 
@@ -3379,15 +3229,15 @@ export default function App() {
               <div style={{ 
                 display: "flex", 
                 alignItems: "center", 
-                background: "var(--color-grouped-bg)", 
+                background: "var(--bg-tertiary)", 
                 borderRadius: "var(--radius-medium)", 
                 padding: "var(--space-8) var(--space-12)", 
                 gap: "var(--space-8)",
-                border: "0.5px solid var(--color-separator)",
+                border: "0.5px solid var(--separator)",
                 width: "100%",
                 boxSizing: "border-box"
               }}>
-                <SearchOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--color-text-secondary)", flexShrink: 0 }} />
+                <SearchOutlinedIcon style={{ fontSize: "1.1rem", color: "var(--label-secondary)", flexShrink: 0 }} />
                 <input 
                   type="text" 
                   placeholder="Cari nama atau nomor WhatsApp..." 
@@ -3398,14 +3248,14 @@ export default function App() {
                     background: "none", 
                     outline: "none", 
                     fontSize: "var(--hig-fs-body)", 
-                    color: "var(--color-text-primary)",
+                    color: "var(--label-primary)",
                     width: "100%",
                     padding: 0
                   }} 
                 />
               </div>
 
-              <div className="ios-list" style={{ flex: 1, minHeight: "200px", overflowY: "auto", overflowX: "hidden", border: "0.5px solid var(--color-separator)", borderRadius: "var(--radius-medium)", boxSizing: "border-box", width: "100%" }}>
+              <div className="ios-list" style={{ flex: 1, minHeight: "200px", overflowY: "auto", overflowX: "hidden", border: "0.5px solid var(--separator)", borderRadius: "var(--radius-medium)", boxSizing: "border-box", width: "100%" }}>
                 {(() => {
                   const filtered = contacts.filter(c => {
                     const name = (c.nama_guru || c.nama || "").toLowerCase();
@@ -3416,7 +3266,7 @@ export default function App() {
 
                   if (filtered.length === 0) {
                     return (
-                      <div style={{ padding: "20px", fontStyle: "italic", textAlign: "center", color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", width: "100%", boxSizing: "border-box" }}>
+                      <div style={{ padding: "20px", fontStyle: "italic", textAlign: "center", color: "var(--label-secondary)", fontSize: "var(--hig-fs-footnote)", width: "100%", boxSizing: "border-box" }}>
                         {searchTeacherQuery ? "Guru tidak ditemukan" : "Memuat data kontak..."}
                       </div>
                     );
@@ -3436,8 +3286,8 @@ export default function App() {
                       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", width: "100%", boxSizing: "border-box", minWidth: 0 }}>
                         <IOSAvatar name={t.nama_guru || t.nama} />
                         <div style={{ display: "flex", flexDirection: "column", minWidth: 0, flex: 1 }}>
-                          <span style={{ fontWeight: "600", color: "var(--color-text-primary)", fontSize: "var(--hig-fs-subheadline)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.nama_guru || t.nama}</span>
-                          <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--color-text-secondary)" }}>{t.no_wa || t.nomor_wa || "-"}</span>
+                          <span style={{ fontWeight: "600", color: "var(--label-primary)", fontSize: "var(--hig-fs-subheadline)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{t.nama_guru || t.nama}</span>
+                          <span style={{ fontSize: "var(--hig-fs-badge)", color: "var(--label-secondary)" }}>{t.no_wa || t.nomor_wa || "-"}</span>
                         </div>
                       </div>
                     </IOSListRow>
@@ -3449,59 +3299,123 @@ export default function App() {
 
           {/* ═══ 10. IOS SHEET: Profil & Aksi Pengguna (Mobile Only) ═══ */}
           <IOSSheet isOpen={showMobileProfileSheet} onClose={() => setShowMobileProfileSheet(false)}>
-            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}>
-              {/* Header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-8)", color: "var(--color-text-secondary)" }}>
-                  <PersonOutlineOutlinedIcon style={{ fontSize: "1.25rem" }} />
-                  <span style={{ fontSize: "var(--hig-fs-footnote)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Profil Saya</span>
+            {user && (
+              <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                {/* 1. Header Ringkas (Apple Style) */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--label-secondary)" }}>
+                    <PersonOutlineOutlinedIcon style={{ fontSize: "1.1rem" }} />
+                    <span style={{ fontSize: "var(--fs-caption-2)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "1px" }}>Profil Saya</span>
+                  </div>
+                  <button onClick={() => setShowMobileProfileSheet(false)} className="ios-profile-close-btn" aria-label="Tutup">
+                    <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--label-secondary)" }} />
+                  </button>
                 </div>
-                <button onClick={() => setShowMobileProfileSheet(false)} className="btn-ghost" aria-label="Tutup" style={{ display: "inline-flex", width: "44px", height: "44px", minWidth: "44px", minHeight: "44px", borderRadius: "50%", background: "var(--color-grouped-bg)", justifyContent: "center", alignItems: "center", cursor: "pointer", border: "none" }}>
-                  <CloseOutlinedIcon style={{ fontSize: "1rem", color: "var(--color-text-secondary)" }} />
-                </button>
-              </div>
 
-              {/* Profile Details */}
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-16)", paddingBottom: "var(--space-16)", borderBottom: "1px solid var(--color-separator)" }}>
-                <IOSAvatar name={user?.name} />
-                <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
-                  <h2 style={{ fontSize: "var(--hig-fs-title)", fontWeight: 600, color: "var(--color-text-primary)", letterSpacing: "-0.2px", lineHeight: "1.25" }}>
-                    {user?.name}
-                  </h2>
-                  <span style={{ color: "var(--color-text-secondary)", fontSize: "var(--hig-fs-footnote)", display: "flex", alignItems: "center", gap: "var(--space-4)", marginTop: "2px" }}>
-                    {user?.phone} · <strong style={{ textTransform: "uppercase" }}>{user?.role || "USER"}</strong>
-                  </span>
+                {/* 2. Nama & Kontak Utama (Native iOS 14 Style) */}
+                <div style={{ display: "flex", alignItems: "center", gap: "16px", paddingBottom: "16px", borderBottom: "1px solid var(--separator)" }}>
+                  <div style={{
+                    width: "44px",
+                    height: "44px",
+                    borderRadius: "50%",
+                    background: "linear-gradient(135deg, var(--blue), var(--purple))",
+                    border: "1px solid var(--border)",
+                    boxShadow: "0 4px 12px var(--blue-tint)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "var(--label-primary)",
+                    fontWeight: "700",
+                    fontSize: "var(--fs-headline)",
+                    flexShrink: 0
+                  }}>
+                    {getInitials(user.name)}
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+                    <h2 style={{
+                      fontSize: "var(--fs-title-2)",
+                      fontWeight: "700",
+                      color: "var(--label-primary)",
+                      letterSpacing: "-0.5px",
+                      lineHeight: "1.2",
+                      margin: 0,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis"
+                    }}>
+                      {user.name}
+                    </h2>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px", color: "var(--label-secondary)", fontSize: "var(--fs-subheadline)", marginTop: "4px" }}>
+                      <PhoneAndroidOutlinedIcon style={{ fontSize: "1rem", color: "var(--label-secondary)" }} />
+                      <span>{user.phone} · <strong style={{ textTransform: "uppercase" }}>{user.role || "USER"}</strong></span>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Actions */}
-              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-12)", marginTop: "var(--space-8)" }}>
-                {hasPermission("ubah_password_sendiri") && (
+                {/* 2.5. Pilihan Tema (Grouped iOS Style List) */}
+                <div className="ios-list" style={{ marginTop: "16px", marginBottom: "16px", overflow: "hidden" }}>
+                  <div className="ios-list-row" style={{ minHeight: "44px", padding: "8px 16px", border: "none" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                      <div style={{
+                        width: "28px",
+                        height: "28px",
+                        borderRadius: "8px",
+                        background: theme === "light" ? "var(--orange-tint)" : "var(--blue-tint)",
+                        color: theme === "light" ? "var(--orange)" : "var(--blue)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}>
+                        {theme === "light" ? (
+                          <WbSunnyOutlinedIcon style={{ fontSize: "1rem" }} />
+                        ) : (
+                          <DarkModeOutlinedIcon style={{ fontSize: "1rem" }} />
+                        )}
+                      </div>
+                      <span style={{ fontSize: "var(--fs-subheadline)", fontWeight: "500", color: "var(--label-primary)" }}>
+                        Mode Gelap
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      {/* iOS Switch Toggle */}
+                      <IOSSwitch 
+                        checked={theme === "dark"} 
+                        onChange={(e) => setTheme(e.target.checked ? "dark" : "light")}
+                        ariaLabel="Toggle Mode Gelap"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Aksi Pengguna */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginTop: "4px" }}>
+                  {hasPermission("ubah_password_sendiri") && (
+                    <IOSButton 
+                      onClick={() => {
+                        setShowMobileProfileSheet(false);
+                        setShowChangePasswordModal(true);
+                      }} 
+                      variant="secondary" 
+                      style={{ width: "100%" }} 
+                      ariaLabel="Ubah Password"
+                    >
+                      <KeyOutlinedIcon style={{ fontSize: "0.95rem", marginRight: "6px" }} /> Ubah Password
+                    </IOSButton>
+                  )}
                   <IOSButton 
                     onClick={() => {
                       setShowMobileProfileSheet(false);
-                      setShowChangePasswordModal(true);
+                      handleLogout();
                     }} 
-                    variant="secondary" 
+                    variant="danger" 
                     style={{ width: "100%" }} 
-                    ariaLabel="Ubah Password"
+                    ariaLabel="Logout"
                   >
-                    <KeyOutlinedIcon style={{ fontSize: "0.95rem" }} /> Ubah Password
+                    <LogoutOutlinedIcon style={{ fontSize: "0.95rem", marginRight: "6px" }} /> Logout
                   </IOSButton>
-                )}
-                <IOSButton 
-                  onClick={() => {
-                    setShowMobileProfileSheet(false);
-                    handleLogout();
-                  }} 
-                  variant="danger" 
-                  style={{ width: "100%" }} 
-                  ariaLabel="Logout"
-                >
-                  <LogoutOutlinedIcon style={{ fontSize: "0.95rem" }} /> Logout
-                </IOSButton>
+                </div>
               </div>
-            </div>
+            )}
           </IOSSheet>
 
         </>
